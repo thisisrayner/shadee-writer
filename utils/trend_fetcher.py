@@ -1,5 +1,7 @@
-# Version 1.0.0:
-# - Initial implementation to fetch and process keywords from multiple sheets.
+# Version 1.1.0:
+# - Updated list of worksheets to scan as per user confirmation.
+# Previous versions:
+# - Version 1.0.0: Initial implementation to fetch and process keywords.
 
 """
 Module: trend_fetcher.py
@@ -15,13 +17,10 @@ from datetime import datetime, timedelta
 import pandas as pd
 
 # --- Constants ---
-# The four sheets to scan for keywords
-SHEET_NAMES_TO_SCAN = ["google trends", "reddit", "youtube", "tumblr"]
-# The name of the column containing the dates
+# NEW: Updated list of sheet names to scan
+SHEET_NAMES_TO_SCAN = ["Sheet1", "Google Trends", "Reddit", "Youtube", "Tumblr"]
 DATE_COLUMN = "post_dt"
-# IMPORTANT: The name of the column containing the keywords.
-# Change this if your column is named differently.
-KEYWORD_COLUMN = "Keyword"
+KEYWORD_COLUMN = "Keyword" # Assumes this column name is consistent
 
 def get_trending_keywords():
     """
@@ -30,10 +29,9 @@ def get_trending_keywords():
     cleaned list of keywords.
 
     Returns:
-        list[str] or None: A list of trending keywords, or None if an error occurs.
+        list[str]: A list of trending keywords. Returns an empty list on failure.
     """
     try:
-        # Use the same credentials as g_sheets.py
         scope = [
             "https://spreadsheets.google.com/feeds",
             'https://www.googleapis.com/auth/spreadsheets',
@@ -49,32 +47,26 @@ def get_trending_keywords():
         all_keywords = []
         thirty_days_ago = datetime.now() - timedelta(days=30)
 
-        # Iterate through each specified sheet name
         for sheet_name in SHEET_NAMES_TO_SCAN:
             try:
                 worksheet = spreadsheet.worksheet(sheet_name)
                 data = worksheet.get_all_records()
                 
                 if not data:
-                    st.info(f"Sheet '{sheet_name}' is empty or has no data. Skipping.")
                     continue
 
                 df = pd.DataFrame(data)
 
-                # Check if required columns exist in the current sheet
                 if DATE_COLUMN not in df.columns or KEYWORD_COLUMN not in df.columns:
                     st.warning(f"Sheet '{sheet_name}' is missing '{DATE_COLUMN}' or '{KEYWORD_COLUMN}' column. Skipping.")
                     continue
 
-                # Convert date column to datetime objects, coercing errors
                 df[DATE_COLUMN] = pd.to_datetime(df[DATE_COLUMN], errors='coerce')
                 df.dropna(subset=[DATE_COLUMN], inplace=True)
 
-                # Filter for the last 30 days
                 recent_df = df[df[DATE_COLUMN] >= thirty_days_ago]
                 
                 if not recent_df.empty:
-                    # Add keywords from the recent data to our master list
                     all_keywords.extend(recent_df[KEYWORD_COLUMN].tolist())
 
             except gspread.exceptions.WorksheetNotFound:
@@ -82,21 +74,17 @@ def get_trending_keywords():
             except Exception as e:
                 st.warning(f"Could not process sheet '{sheet_name}': {e}")
 
-        # --- Final Cleaning and Deduplication ---
         if not all_keywords:
             return []
 
-        # Use pandas for efficient cleaning
         keyword_series = pd.Series(all_keywords)
-        # Convert to lowercase, drop any non-string/empty values, and get uniques
         cleaned_keywords = keyword_series.str.lower().dropna().unique().tolist()
-        # Final filter to remove any empty strings that might remain
         final_list = [kw for kw in cleaned_keywords if isinstance(kw, str) and kw.strip()]
         
         return sorted(final_list)
 
     except Exception as e:
         st.error(f"Error fetching trending keywords: {e}")
-        return None
+        return [] # Return empty list on failure to prevent crashes
 
 # End of trend_fetcher.py
