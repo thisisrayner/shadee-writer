@@ -1,8 +1,8 @@
-# Version 1.6.0:
-# - Adopted new documentation and versioning style.
+# Version 1.6.1:
+# - Corrected timestamp to use Asia/Singapore timezone.
+# - Fixed date formatting string to correctly display month and day.
 # Previous versions:
-# - Version 1.5.0: Added separate 'Keywords' column and updated header logic.
-# - Version 1.4.0: Added automatic header-check functionality.
+# - Version 1.6.0: Adopted new documentation and versioning style.
 
 """
 Module: g_sheets.py
@@ -17,6 +17,8 @@ import streamlit as st
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
+# NEW: Import ZoneInfo for timezone-aware datetimes
+from zoneinfo import ZoneInfo
 
 # --- Constants ---
 EXPECTED_HEADER = ["Timestamp", "Topic", "Structure Choice", "Keywords", "Generated Output"]
@@ -67,7 +69,12 @@ def write_to_sheet(sheet, topic, structure, keywords, full_content):
     Writes the full generated package to a new row in the sheet, with keywords separated.
     """
     try:
-        timestamp = datetime.now().strftime("%Y-m-d %H:%M:%S")
+        # --- TIMESTAMP LOGIC UPDATED HERE ---
+        # 1. Get the current time specifically for the Singapore timezone.
+        singapore_time = datetime.now(ZoneInfo("Asia/Singapore"))
+        
+        # 2. Format that time into a string with the correct format codes (%m and %d).
+        timestamp = singapore_time.strftime("%Y-%m-%d %H:%M:%S")
         
         row_to_insert = [timestamp, topic, structure, keywords, full_content]
         
