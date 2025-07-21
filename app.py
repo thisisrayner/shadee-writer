@@ -1,14 +1,14 @@
+# --- Versioning ---
+__version__ = "1.5.1" # Restored docstring, keywords column logic remains
 
-#__version__ = "1.3.1" # Updated version for UI fix
-
-
-# Module: app.py
-#Purpose: The main Streamlit application file for the Shadee Care Writer's Assistant.
-#- Renders the user interface.
-#- Handles user input for topic and structure.
-#- Orchestrates the calls to helper modules for content generation and saving.
-#- Displays the final generated content package.
-
+"""
+Module: app.py
+Purpose: The main Streamlit application file for the Shadee Care Writer's Assistant.
+- Renders the user interface.
+- Handles user input for topic and structure.
+- Orchestrates the calls to helper modules for content generation and saving.
+- Displays the final generated content package.
+"""
 
 # --- Imports ---
 import streamlit as st
@@ -51,7 +51,6 @@ def main():
     """
     Main function to run the Streamlit application.
     """
-    # --- UI Rendering ---
     st.set_page_config(
         page_title="Shadee Care Writer's Assistant",
         page_icon="🪴",
@@ -61,7 +60,6 @@ def main():
     st.title("🪴 Shadee Care Writer's Assistant")
     st.markdown("This tool helps you brainstorm and create draft articles for the Shadee Care blog. Just enter a topic and choose a structure!")
 
-    # --- Step 1: Define Your Article ---
     st.header("Step 1: Define Your Article")
 
     topic = st.text_input(
@@ -80,8 +78,11 @@ def main():
         if not topic:
             st.warning("Please enter a topic to generate content.")
         else:
+            # Clear previous results from session state
             if 'generated_package' in st.session_state:
                 del st.session_state['generated_package']
+            if 'parsed_package' in st.session_state:
+                del st.session_state['parsed_package']
 
             package_content = None
             with st.spinner("✍️ Crafting your writer's pack..."):
@@ -92,14 +93,22 @@ def main():
                     st.exception(e)
 
             if package_content:
+                # Parse the content ONCE and store both raw and parsed versions
+                parsed_package = parse_gpt_output(package_content)
                 st.session_state['generated_package'] = package_content
+                st.session_state['parsed_package'] = parsed_package # Store parsed dict
                 st.session_state['topic'] = topic
                 st.session_state['structure_choice'] = structure_choice
 
                 with st.spinner("💾 Saving the pack to Google Sheets..."):
                     sheet = connect_to_sheet()
                     if sheet:
-                        success = write_to_sheet(sheet, topic, structure_choice, package_content)
+                        # Extract keywords from the parsed dictionary for saving
+                        keywords_text = parsed_package.get("Important keywords:", "").strip()
+                        
+                        # Call the updated write_to_sheet function with 5 arguments
+                        success = write_to_sheet(sheet, topic, structure_choice, keywords_text, package_content)
+                        
                         if success:
                             st.success("Writer's Pack generated and saved successfully!")
                         else:
@@ -113,11 +122,11 @@ def main():
     if 'generated_package' in st.session_state:
         st.header("Step 2: Review Your Writer's Pack")
         
+        # Retrieve both raw and parsed content from session state
         full_package = st.session_state['generated_package']
-        parsed_package = parse_gpt_output(full_package)
+        parsed_package = st.session_state['parsed_package']
 
         with st.container(border=True):
-            # Display each section in an expander
             for header, content in parsed_package.items():
                 if "Context" in header: icon = "🔍"
                 elif "keywords" in header: icon = "🔑"
@@ -131,7 +140,6 @@ def main():
             
             add_vertical_space(1)
             
-            # Correctly calling the copy_to_clipboard function from the new package
             st_copy_to_clipboard(full_package, "Click here to copy the full output")
 
 
