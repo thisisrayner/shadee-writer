@@ -1,5 +1,8 @@
-# --- Versioning ---
-__version__ = "1.5.0" # Added separate Keywords column
+# Version 1.6.0:
+# - Adopted new documentation and versioning style.
+# Previous versions:
+# - Version 1.5.0: Added separate 'Keywords' column and updated header logic.
+# - Version 1.4.0: Added automatic header-check functionality.
 
 """
 Module: g_sheets.py
@@ -16,17 +19,11 @@ from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 
 # --- Constants ---
-# NEW: Updated header to include a "Keywords" column in position D
 EXPECTED_HEADER = ["Timestamp", "Topic", "Structure Choice", "Keywords", "Generated Output"]
 
 def add_header_if_missing(sheet):
     """
     Checks if the first row of the sheet matches the expected header.
-    If the sheet is empty or the header is incorrect, it inserts the
-    correct header row at the top.
-
-    Args:
-        sheet (gspread.Worksheet): The worksheet object to check.
     """
     try:
         current_header = sheet.row_values(1)
@@ -42,12 +39,6 @@ def add_header_if_missing(sheet):
 def connect_to_sheet():
     """
     Establishes and returns a connection to the Google Sheet worksheet.
-
-    Also calls a helper function to ensure the header row is present.
-
-    Returns:
-        gspread.Worksheet or None: The worksheet object if connection is successful,
-                                  otherwise None.
     """
     try:
         scope = [
@@ -71,25 +62,13 @@ def connect_to_sheet():
         st.error(f"Error connecting to Google Sheets: {e}")
         return None
 
-# NEW: Updated function to accept 'keywords' as a separate argument
 def write_to_sheet(sheet, topic, structure, keywords, full_content):
     """
     Writes the full generated package to a new row in the sheet, with keywords separated.
-
-    Args:
-        sheet (gspread.Worksheet): The worksheet object to write to.
-        topic (str): The user-provided topic for the article.
-        structure (str): The structure chosen for the article.
-        keywords (str): The extracted keywords text.
-        full_content (str): The entire raw output from the GPT API.
-
-    Returns:
-        bool: True if the write operation was successful, False otherwise.
     """
     try:
-        timestamp = datetime.now().strftime("%Y-m-%d %H:%M:%S")
+        timestamp = datetime.now().strftime("%Y-m-d %H:%M:%S")
         
-        # NEW: Updated row structure to match the new header
         row_to_insert = [timestamp, topic, structure, keywords, full_content]
         
         sheet.append_row(row_to_insert)
