@@ -1,8 +1,8 @@
-# Version 1.9.0:
-# - Replaced keyword fetch button with a default-on checkbox for a streamlined UI.
-# - Keyword fetching now happens silently within the generation process.
+# Version 1.9.1:
+# - Added fallback logic: if keyword fetching is enabled but returns no keywords,
+#   proceed with generation normally without displaying an error.
 # Previous versions:
-# - Version 1.8.1: Fixed TypeError on dict_keys object.
+# - Version 1.9.0: Streamlined UI with a default-on checkbox for SEO keywords.
 
 """
 Module: app.py
@@ -73,7 +73,6 @@ def main():
         index=len(structure_keys_list)
     )
     
-    # NEW: Replaced button with a checkbox, checked by default
     use_trending_keywords = st.checkbox(
         "Include trending keywords for SEO", 
         value=True,
@@ -96,7 +95,6 @@ def main():
             selected_keywords = []
             package_content = None
             
-            # Dynamic spinner message
             spinner_message = "✍️ Crafting your writer's pack"
             if use_trending_keywords:
                 spinner_message += " with SEO trends..."
@@ -105,11 +103,11 @@ def main():
 
             with st.spinner(spinner_message):
                 try:
-                    # NEW: Fetch keywords only if the checkbox is checked
                     if use_trending_keywords:
                         selected_keywords = get_trending_keywords()
+                        if not selected_keywords:
+                            st.info("No recent trending keywords found. Generating article without SEO keywords.")
 
-                    # Generate the article, passing the keywords (or an empty list)
                     package_content = generate_article_package(
                         topic, 
                         structure_choice, 
@@ -120,7 +118,6 @@ def main():
                     st.exception(e)
             
             if package_content:
-                # ... (Saving and state management logic is unchanged) ...
                 parsed_package = parse_gpt_output(package_content)
                 st.session_state['generated_package'] = package_content
                 st.session_state['parsed_package'] = parsed_package
