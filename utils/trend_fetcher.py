@@ -19,14 +19,17 @@ from datetime import datetime, timedelta
 import pandas as pd
 
 # --- Constants ---
-# The specific sheets to scan for keywords
+# Configuration for each sheet to scan.
+# 'keyword_col' is the column containing the keyword/text.
+# 'interest_col' is optional, used for scoring/filtering.
 SHEET_CONFIG = {
-    "Sheet1": {"keyword_col": "Reddit"}, # Assuming keywords are in a column named "Reddit" in Sheet1
+    "Sheet1": {"keyword_col": "Reddit"}, # Using 'Reddit' as the keyword column for 'Sheet1'
     "Google Trends": {"keyword_col": "Keyword", "interest_col": "Interest"},
     "Reddit": {"keyword_col": "Post Content"},
     "Youtube": {"keyword_col": "Post Content"},
     "Tumblr": {"keyword_col": "Post Content"},
 }
+# The name of the column containing the dates, matching case exactly.
 DATE_COLUMN = "Post_dt"
 
 def get_trending_keywords():
@@ -84,7 +87,6 @@ def get_trending_keywords():
 
                 # --- Source-Specific Keyword Extraction ---
                 if sheet_name == "Google Trends":
-                    # For Google Trends, also consider the 'Interest' column
                     interest_col = config.get("interest_col")
                     if interest_col in recent_df.columns:
                         recent_df[interest_col] = pd.to_numeric(recent_df[interest_col], errors='coerce')
@@ -94,8 +96,7 @@ def get_trending_keywords():
                     else: # Fallback if no interest column
                         all_keywords.extend(recent_df[keyword_col].tolist())
                 else:
-                    # For Reddit, YouTube, Tumblr, the keywords are in "Post Content"
-                    # We might need to extract them from sentences later, but for now, we add the whole content
+                    # For other sheets, add the content from the specified keyword column
                     all_keywords.extend(recent_df[keyword_col].tolist())
 
             except gspread.exceptions.WorksheetNotFound:
