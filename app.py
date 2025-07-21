@@ -1,13 +1,15 @@
-# --- Versioning ---
-__version__ = "1.5.1" # Restored docstring, keywords column logic remains
+# app.py
+
+# Version 1.5.1:
+# - Adopted new documentation and versioning comment style.
+# - Restored module-level docstring, which is hidden from UI by the main() structure.
+# Previous versions:
+# - Version 1.5.0: Added a separate 'Keywords' column to the Google Sheet output.
+# - Version 1.4.0: Added automatic header creation for Google Sheets.
+# - Version 1.3.1: Fixed UI bug where docstring was displayed by moving code into main().
 
 """
-Module: app.py
-Purpose: The main Streamlit application file for the Shadee Care Writer's Assistant.
-- Renders the user interface.
-- Handles user input for topic and structure.
-- Orchestrates the calls to helper modules for content generation and saving.
-- Displays the final generated content package.
+Streamlit Web Application for the Shadee Care Writer's Assistant.
 """
 
 # --- Imports ---
@@ -146,4 +148,4 @@ def main():
 if __name__ == "__main__":
     main()
 
-# End of app.py
+# // end of app.py
