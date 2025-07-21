@@ -1,14 +1,14 @@
-# --- Versioning ---
-__version__ = "1.3.1" # Updated version for UI fix
 
-"""
-Module: app.py
-Purpose: The main Streamlit application file for the Shadee Care Writer's Assistant.
-- Renders the user interface.
-- Handles user input for topic and structure.
-- Orchestrates the calls to helper modules for content generation and saving.
-- Displays the final generated content package.
-"""
+#__version__ = "1.3.1" # Updated version for UI fix
+
+
+# Module: app.py
+#Purpose: The main Streamlit application file for the Shadee Care Writer's Assistant.
+#- Renders the user interface.
+#- Handles user input for topic and structure.
+#- Orchestrates the calls to helper modules for content generation and saving.
+#- Displays the final generated content package.
+
 
 # --- Imports ---
 import streamlit as st
