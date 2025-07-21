@@ -1,17 +1,28 @@
+# Version 1.6.0:
+# - Adopted new documentation and versioning style.
+# Previous versions:
+# - Version 1.1.0: Initial structured prompt implementation.
+
+"""
+Module: gpt_helper.py
+Purpose: Contains all logic for interacting with the OpenAI GPT API.
+- Defines article structures and prompt templates.
+- Constructs the final prompt based on user input.
+- Calls the OpenAI API and returns the generated content.
+"""
+
+# --- Imports ---
 import openai
 import streamlit as st
 
-# Set the API key from Streamlit secrets
+# --- Initialization ---
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
-# --- Prompt Components ---
-
-# This dictionary holds the details for each selectable structure
+# --- Constants ---
 STRUCTURE_DETAILS = {
     "The Classic Reflective": """
 1. The Classic Reflective
 - Tone: Big sibling, reflective, supportive
-- Flow: Relate → Reflect → Resolve
 - Best for: Personal struggles, identity crises, mental health topics
 - Structure:
     🎯 Hook: Personal observation or quote
@@ -19,12 +30,11 @@ STRUCTURE_DETAILS = {
     🔗 Story Parallel: Use a pop culture analogy
     💡 Emotional Insight: Uplifting message
     🗣️ Call to Action: Reflective question
-    🪴 Shadee.Care Weave-In: Subtly include Shadee.Care’s mission to support youth mental health
+    🪴 Shadee.Care Weave-In: Subtly include Shadee.Care’s mission
 """,
     "The Narrative Journey": """
 2. The Narrative Journey
 - Tone: Storytelling, cinematic, introspective
-- Flow: Setup → Challenge → Resolution → Reflection
 - Best for: Celebrity profiles, comeback stories, overcoming adversity
 - Structure:
     🎥 Opening Scene: Set the stage with a dramatic moment
@@ -32,12 +42,11 @@ STRUCTURE_DETAILS = {
     🌱 Turning the Tide: Describe the comeback or growth
     💡 Reflection: Broader life lesson
     🗣️ Call to Action: Encourage self-reflection
-    🪴 Shadee.Care Weave-In: Subtly include Shadee.Care’s mission to support youth mental health
+    🪴 Shadee.Care Weave-In: Subtly include Shadee.Care’s mission
 """,
     "The Mentor's Guide": """
 3. The Mentor’s Guide
 - Tone: Supportive, practical, motivational
-- Flow: Problem → Understanding → Guidance → Empowerment
 - Best for: Skill-building, mindset shifts, overcoming specific challenges
 - Structure:
     🔍 Identify the Problem: Define the issue clearly
@@ -45,11 +54,10 @@ STRUCTURE_DETAILS = {
     🛠️ Practical Advice: Provide actionable steps
     💪 Empower the Reader: Reinforce their capability
     🗣️ Call to Action: Small, actionable next step
-    🪴 Shadee.Care Weave-In: Subtly include Shadee.Care’s mission to support youth mental health
+    🪴 Shadee.Care Weave-In: Subtly include Shadee.Care’s mission
 """
 }
 
-# The main prompt body, with placeholders for topic and structure instructions
 BASE_PROMPT = """
 🎯 Purpose:
 Your role is to help Shadee.Care writers create emotionally resonant, culturally relevant articles for youth (13-30 years old). The user has provided you with the topic to focus on. You will then provide topic ideas, fun facts, research points, tone reminders, and a first draft to help writers finalize their articles.
@@ -112,8 +120,9 @@ Write a 2-sentence comfort note if the article covers self-harm, ED, severe dist
 """
 
 def generate_article_package(topic, structure_choice):
-    """Builds the prompt and calls the GPT API."""
-    
+    """
+    Builds the complete prompt and calls the OpenAI API.
+    """
     if structure_choice == "Let GPT Decide for Me":
         all_structures = "\n\n".join(STRUCTURE_DETAILS.values())
         structure_instructions = f"""
@@ -129,22 +138,19 @@ You must use the following structure for the first draft.
 {selected_structure_detail}
 """
 
-    # Assemble the final prompt
     final_prompt = BASE_PROMPT.format(
         topic=topic,
         structure_instructions=structure_instructions
     )
     
-    try:
-        response = openai.chat.completions.create(
-            model="gpt-4-turbo-preview",  # This model is excellent for complex instructions
-            messages=[
-                {"role": "system", "content": "You are a specialized writing assistant for Shadee.Care, creating content for youth."},
-                {"role": "user", "content": final_prompt}
-            ],
-            temperature=0.7,
-        )
-        return response.choices[0].message.content
-    except Exception as e:
-        st.error(f"Error calling OpenAI API: {e}")
-        return None
+    response = openai.chat.completions.create(
+        model="gpt-4-turbo-preview",
+        messages=[
+            {"role": "system", "content": "You are a specialized writing assistant for Shadee.Care, creating content for youth."},
+            {"role": "user", "content": final_prompt}
+        ],
+        temperature=0.7,
+    )
+    return response.choices[0].message.content
+
+# End of gpt_helper.py
