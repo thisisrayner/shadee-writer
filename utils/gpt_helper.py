@@ -1,7 +1,7 @@
-# Version 1.6.0:
-# - Adopted new documentation and versioning style.
+# Version 1.7.0:
+# - Switched model to gpt-4o-mini for improved speed and cost-efficiency.
 # Previous versions:
-# - Version 1.1.0: Initial structured prompt implementation.
+# - Version 1.6.0: Adopted new documentation and versioning style.
 
 """
 Module: gpt_helper.py
@@ -144,7 +144,8 @@ You must use the following structure for the first draft.
     )
     
     response = openai.chat.completions.create(
-        model="gpt-4-turbo-preview",
+        # --- MODEL UPDATED HERE ---
+        model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": "You are a specialized writing assistant for Shadee.Care, creating content for youth."},
             {"role": "user", "content": final_prompt}
