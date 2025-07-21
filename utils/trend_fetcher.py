@@ -1,8 +1,7 @@
-# Version 2.0.0:
-# - Implemented a two-stage pipeline using an LLM call to pre-process raw text
-#   and extract a clean list of keywords, solving the RateLimitError.
+# Version 2.1.0:
+# - Updated to use modern google-auth libraries instead of deprecated oauth2client.
 # Previous versions:
-# - Version 1.2.0: Handled different column names for each sheet source.
+# - Version 2.0.0: Implemented two-stage AI pipeline for keyword extraction.
 
 """
 Module: trend_fetcher.py
@@ -13,10 +12,11 @@ Purpose: Implements Stage 1 of the AI pipeline. It fetches raw text data from
 # --- Imports ---
 import streamlit as st
 import gspread
-import openai # <-- NEW: This module now needs to call the API
-from oauth2client.service_account import ServiceAccountCredentials
+import openai
 from datetime import datetime, timedelta
 import pandas as pd
+# NEW: Import the modern authentication helper
+from google.oauth2.service_account import Credentials
 
 # --- Constants ---
 SHEET_CONFIG = {
@@ -27,20 +27,11 @@ SHEET_CONFIG = {
     "Tumblr": {"keyword_col": "Post Content"},
 }
 DATE_COLUMN = "Post_dt"
-# Safety limit for the text block sent to the keyword extractor AI
-# 200,000 chars is roughly 50k tokens, well within limits.
 MAX_CHARS_FOR_EXTRACTION = 200000
 
-# NEW: Helper function for the keyword extraction AI call
 def extract_keywords_from_text(text_block):
     """
     Uses a fast LLM to read a large block of text and extract key themes.
-    
-    Args:
-        text_block (str): A large string containing all the raw post content.
-
-    Returns:
-        list[str]: A list of cleaned keywords.
     """
     if not text_block:
         return []
@@ -58,16 +49,15 @@ def extract_keywords_from_text(text_block):
         """
         
         response = openai.chat.completions.create(
-            model="gpt-4o-mini", # Perfect for this kind of fast, smart extraction
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": text_block}
             ],
-            temperature=0.1, # Low temperature for deterministic, non-creative output
+            temperature=0.1,
         )
         
         keywords_string = response.choices[0].message.content
-        # Clean the output: split by comma, strip whitespace from each item, and filter out any empty strings
         keyword_list = [kw.strip() for kw in keywords_string.split(',') if kw.strip()]
         return keyword_list
         
@@ -75,38 +65,42 @@ def extract_keywords_from_text(text_block):
         st.error(f"Error during AI keyword extraction: {e}")
         return []
 
-
 def get_trending_keywords():
     """
-    Connects to 'Shadee Social Master', fetches raw text data, and passes it to an
-    LLM for pre-processing into a clean list of keywords.
-
-    Returns:
-        list[str]: A list of trending keywords. Returns an empty list on failure.
+    Connects to 'Shadee Social Master' using modern google-auth, fetches raw text data,
+    and passes it to an LLM for pre-processing into a clean list of keywords.
     """
     try:
-        # ... (G-Sheets connection logic is unchanged) ...
-        scope = ["..."] # Your scopes
-        creds_dict = st.secrets["gcp_service_account"]
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+        # --- NEW AUTHENTICATION METHOD ---
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive",
+        ]
+        creds = Credentials.from_service_account_info(
+            st.secrets["gcp_service_account"],
+            scopes=scopes,
+        )
         client = gspread.authorize(creds)
+        
         spreadsheet = client.open("Shadee Social Master")
         
         all_raw_text = []
         thirty_days_ago = datetime.now() - timedelta(days=30)
 
         for sheet_name, config in SHEET_CONFIG.items():
-            # ... (The loop to fetch data and build the DataFrame is unchanged) ...
             try:
                 worksheet = spreadsheet.worksheet(sheet_name)
                 data = worksheet.get_all_values()
-                if len(data) < 2: continue
+                
+                if len(data) < 2:
+                    continue
+
                 header = data[0]
                 df = pd.DataFrame(data[1:], columns=header)
                 
                 keyword_col = config["keyword_col"]
                 if DATE_COLUMN not in df.columns or keyword_col not in df.columns:
-                    st.warning(f"Sheet '{sheet_name}' is missing '{DATE_COLUMN}' or '{keyword_col}'. Skipping.")
+                    st.warning(f"Sheet '{sheet_name}' is missing '{DATE_COLUMN}' or '{keyword_col}' column. Skipping.")
                     continue
 
                 df.dropna(subset=[DATE_COLUMN, keyword_col], inplace=True)
@@ -115,31 +109,39 @@ def get_trending_keywords():
                 df.dropna(subset=[DATE_COLUMN], inplace=True)
                 
                 recent_df = df[df[DATE_COLUMN] >= thirty_days_ago]
-                if recent_df.empty: continue
                 
-                # Add all relevant text to one big list
-                all_raw_text.extend(recent_df[keyword_col].tolist())
+                if recent_df.empty:
+                    continue
+
+                if sheet_name == "Google Trends":
+                    interest_col = config.get("interest_col")
+                    if interest_col in recent_df.columns:
+                        recent_df[interest_col] = pd.to_numeric(recent_df[interest_col], errors='coerce')
+                        high_interest_df = recent_df[recent_df[interest_col] > 50]
+                        all_raw_text.extend(high_interest_df[keyword_col].tolist())
+                    else:
+                        all_raw_text.extend(recent_df[keyword_col].tolist())
+                else:
+                    all_raw_text.extend(recent_df[keyword_col].tolist())
+
+            except gspread.exceptions.WorksheetNotFound:
+                st.warning(f"Worksheet named '{sheet_name}' not found. Skipping.")
             except Exception as e:
                 st.warning(f"Could not process sheet '{sheet_name}': {e}")
 
         if not all_raw_text:
             return []
 
-        # --- NEW PRE-PROCESSING STEP ---
-        # 1. Combine all fetched text into a single block.
         combined_text_block = "\n\n---NEW POST---\n\n".join(all_raw_text)
-        
-        # 2. Truncate to a safe length to prevent rate limiting the extractor.
         truncated_text = combined_text_block[:MAX_CHARS_FOR_EXTRACTION]
         
-        # 3. Call our new AI helper function to get clean keywords.
         st.info("Raw trends fetched. Summarizing into keywords...")
         final_keywords = extract_keywords_from_text(truncated_text)
         
         return sorted(final_keywords)
 
     except Exception as e:
-        st.error(f"A critical error occurred while fetching keywords: {e}")
+        st.error(f"A critical error occurred while fetching keywords (trend_fetcher.py): {e}")
         return []
 
 # End of trend_fetcher.py
