@@ -60,20 +60,33 @@ structure_choice = st.selectbox(
     index=len(structure_options) - 1 # Default to "Let GPT Decide for Me"
 )
 
-# Generate button
+# --- NEW: Generate button block with improved error handling ---
 if st.button("Generate Writer's Pack", type="primary"):
     if not topic:
         st.warning("Please enter a topic to generate content.")
     else:
+        # Clear previous results before generating new ones
+        if 'generated_package' in st.session_state:
+            del st.session_state['generated_package']
+
         with st.spinner("Crafting your writer's pack... This is the deep-thinking part, please wait."):
-            # Generate the full package using the helper function
-            package_content = generate_article_package(topic, structure_choice)
-            
-            if package_content:
-                st.session_state['generated_package'] = package_content
-                st.session_state['topic'] = topic
-                st.session_state['structure_choice'] = structure_choice
-                st.success("Your Writer's Pack is ready!")
+            try:
+                # Generate the full package using the helper function
+                package_content = generate_article_package(topic, structure_choice)
+                
+                if package_content:
+                    st.session_state['generated_package'] = package_content
+                    st.session_state['topic'] = topic
+                    st.session_state['structure_choice'] = structure_choice
+                    st.success("Your Writer's Pack is ready!")
+                else:
+                    # This will now catch cases where the function returns None without an exception
+                    st.error("Failed to generate content. The API returned an empty response. Please check your prompt or API key.")
+
+            except Exception as e:
+                # This will catch any unexpected errors during the API call and display them
+                st.error("An error occurred while calling the OpenAI API.")
+                st.exception(e) # This prints the full error traceback in the app for easy debugging
 
 # --- Display and Save Article Package ---
 if 'generated_package' in st.session_state:
@@ -120,4 +133,4 @@ if 'generated_package' in st.session_state:
                 if success:
                     st.success("Writer's Pack successfully saved to Google Sheets!")
                 else:
-                    st.error("Failed to save the pack. Please check the logs.")
+                    st.error("Failed to save the pack. Please check the logs in your terminal or deployment platform.")
