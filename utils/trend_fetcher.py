@@ -1,7 +1,7 @@
-# Version 2.1.0:
-# - Updated to use modern google-auth libraries instead of deprecated oauth2client.
+# Version 2.1.1:
+# - Removed 'Sheet1' from the list of sheets to scan for keywords.
 # Previous versions:
-# - Version 2.0.0: Implemented two-stage AI pipeline for keyword extraction.
+# - Version 2.1.0: Updated to use modern google-auth libraries.
 
 """
 Module: trend_fetcher.py
@@ -15,12 +15,11 @@ import gspread
 import openai
 from datetime import datetime, timedelta
 import pandas as pd
-# NEW: Import the modern authentication helper
 from google.oauth2.service_account import Credentials
 
 # --- Constants ---
+# NEW: Removed "Sheet1" from the configuration.
 SHEET_CONFIG = {
-    "Sheet1": {"keyword_col": "Reddit"},
     "Google Trends": {"keyword_col": "Keyword", "interest_col": "Interest"},
     "Reddit": {"keyword_col": "Post Content"},
     "Youtube": {"keyword_col": "Post Content"},
@@ -67,11 +66,10 @@ def extract_keywords_from_text(text_block):
 
 def get_trending_keywords():
     """
-    Connects to 'Shadee Social Master' using modern google-auth, fetches raw text data,
-    and passes it to an LLM for pre-processing into a clean list of keywords.
+    Connects to 'Shadee Social Master', fetches raw text data from configured social
+    media sheets, and passes it to an LLM for pre-processing into a clean list of keywords.
     """
     try:
-        # --- NEW AUTHENTICATION METHOD ---
         scopes = [
             "https://www.googleapis.com/auth/spreadsheets",
             "https://www.googleapis.com/auth/drive",
@@ -132,7 +130,7 @@ def get_trending_keywords():
         if not all_raw_text:
             return []
 
-        combined_text_block = "\n\n---NEW POST---\n\n".join(all_raw_text)
+        combined_text_block = "\n\n---NEW POST---\n\n".join(map(str, all_raw_text))
         truncated_text = combined_text_block[:MAX_CHARS_FOR_EXTRACTION]
         
         st.info("Raw trends fetched. Summarizing into keywords...")
