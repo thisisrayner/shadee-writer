@@ -1,7 +1,7 @@
-# Version 1.8.0:
-# - Integrated new trend_fetcher module to pull keywords from multiple sheets.
+# Version 1.8.1:
+# - Fixed a TypeError caused by adding a dict_keys object to a list.
 # Previous versions:
-# - Version 1.6.0: Adopted D.O.R.A project documentation style.
+# - Version 1.8.0: Integrated new trend_fetcher module.
 
 """
 Module: app.py
@@ -17,7 +17,7 @@ import streamlit as st
 import re
 from utils.gpt_helper import generate_article_package, STRUCTURE_DETAILS
 from utils.g_sheets import connect_to_sheet, write_to_sheet
-from utils.trend_fetcher import get_trending_keywords # <-- NEW IMPORT
+from utils.trend_fetcher import get_trending_keywords
 from streamlit_extras.add_vertical_space import add_vertical_space
 from st_copy_to_clipboard import st_copy_to_clipboard
 
@@ -26,7 +26,6 @@ def parse_gpt_output(text):
     """
     Parses the structured GPT output string into a dictionary of sections.
     """
-    # ... (function content is unchanged) ...
     if not text:
         return {}
     sections = [
@@ -63,21 +62,25 @@ def main():
         "Enter the article topic:",
         placeholder="e.g., 'Overcoming the fear of failure' or a celebrity profile like 'Zendaya's journey with anxiety'"
     )
+
+    # --- THIS BLOCK IS CORRECTED ---
+    structure_keys_list = list(STRUCTURE_DETAILS.keys()) # Convert to list first
+    structure_options = structure_keys_list + ["Let GPT Decide for Me"]
+    
     structure_choice = st.selectbox(
         "Choose an article structure:",
-        options=STRUCTURE_DETAILS.keys() + ["Let GPT Decide for Me"],
-        index=len(STRUCTURE_DETAILS.keys()) # Default to "Let GPT Decide for Me"
+        options=structure_options,
+        index=len(structure_keys_list) # This correctly defaults to the last item
     )
+    # --- END OF CORRECTION ---
 
-    # --- NEW: TRENDING KEYWORDS SECTION ---
+    # --- Step 2: Add Trending Keywords (Optional) ---
     st.header("Step 2: Add Trending Keywords (Optional)")
 
     if st.button("Fetch Keywords from Master Sheet"):
         with st.spinner("Analyzing trends from Google Trends, Reddit, YouTube & Tumblr..."):
-            # The session state variable name is descriptive
             st.session_state.trending_keywords_list = get_trending_keywords()
 
-    # Default selected_keywords to an empty list
     selected_keywords = []
     if 'trending_keywords_list' in st.session_state and st.session_state.trending_keywords_list is not None:
         if st.session_state.trending_keywords_list:
@@ -92,12 +95,12 @@ def main():
             
     add_vertical_space(2)
 
+    # --- Step 3: Generate Article ---
     st.header("Step 3: Generate Article")
     if st.button("Generate & Save Writer's Pack", type="primary"):
         if not topic:
             st.warning("Please enter a topic to generate content.")
         else:
-            # ... (clear session state logic remains the same) ...
             if 'generated_package' in st.session_state:
                 del st.session_state['generated_package']
             if 'parsed_package' in st.session_state:
@@ -106,17 +109,15 @@ def main():
             package_content = None
             with st.spinner("✍️ Crafting your writer's pack..."):
                 try:
-                    # Pass the selected keywords from the multiselect widget
                     package_content = generate_article_package(
                         topic, 
                         structure_choice, 
-                        keywords=selected_keywords # Pass the list of selected keywords
+                        keywords=selected_keywords
                     )
                 except Exception as e:
                     st.error("An error occurred while calling the OpenAI API.")
                     st.exception(e)
             
-            # ... (The rest of the saving and display logic is unchanged) ...
             if package_content:
                 parsed_package = parse_gpt_output(package_content)
                 st.session_state['generated_package'] = package_content
