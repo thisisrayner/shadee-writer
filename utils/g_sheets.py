@@ -1,12 +1,12 @@
 # --- Versioning ---
-__version__ = "1.4.0" # Added header-check functionality
+__version__ = "1.5.0" # Added separate Keywords column
 
 """
 Module: g_sheets.py
 Purpose: Handles all interactions with the Google Sheets API for the writer assistant.
 - Establishes a connection using service account credentials.
 - Automatically checks for and creates a header row if one is missing.
-- Provides a function to write data to the specified worksheet.
+- Provides a function to write the generated article pack to a new row.
 """
 
 # --- Imports ---
@@ -16,7 +16,8 @@ from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 
 # --- Constants ---
-EXPECTED_HEADER = ["Timestamp", "Topic", "Structure Choice", "Generated Output"]
+# NEW: Updated header to include a "Keywords" column in position D
+EXPECTED_HEADER = ["Timestamp", "Topic", "Structure Choice", "Keywords", "Generated Output"]
 
 def add_header_if_missing(sheet):
     """
@@ -28,17 +29,13 @@ def add_header_if_missing(sheet):
         sheet (gspread.Worksheet): The worksheet object to check.
     """
     try:
-        # Attempt to get the first row.
         current_header = sheet.row_values(1)
     except gspread.exceptions.APIError as e:
-        # This specific error occurs if the sheet is completely empty.
         if "exceeds grid limits" in str(e):
             current_header = []
         else:
-            # Re-raise any other unexpected API errors.
             raise e
 
-    # If the current header doesn't match what we expect, insert it.
     if current_header != EXPECTED_HEADER:
         sheet.insert_row(EXPECTED_HEADER, 1)
 
@@ -67,7 +64,6 @@ def connect_to_sheet():
         spreadsheet = client.open("Shadee writer assistant") 
         sheet = spreadsheet.worksheet("Sheet1")
 
-        # --- NEW: Automatically check and add the header ---
         add_header_if_missing(sheet)
         
         return sheet
@@ -75,15 +71,16 @@ def connect_to_sheet():
         st.error(f"Error connecting to Google Sheets: {e}")
         return None
 
-def write_to_sheet(sheet, topic, structure, full_content):
+# NEW: Updated function to accept 'keywords' as a separate argument
+def write_to_sheet(sheet, topic, structure, keywords, full_content):
     """
-    Writes the full generated package to a new row in the sheet.
-    This function is returned to its original state as requested.
+    Writes the full generated package to a new row in the sheet, with keywords separated.
 
     Args:
         sheet (gspread.Worksheet): The worksheet object to write to.
         topic (str): The user-provided topic for the article.
         structure (str): The structure chosen for the article.
+        keywords (str): The extracted keywords text.
         full_content (str): The entire raw output from the GPT API.
 
     Returns:
@@ -91,8 +88,10 @@ def write_to_sheet(sheet, topic, structure, full_content):
     """
     try:
         timestamp = datetime.now().strftime("%Y-m-%d %H:%M:%S")
-        # The row now includes the full, unparsed GPT output
-        row_to_insert = [timestamp, topic, structure, full_content]
+        
+        # NEW: Updated row structure to match the new header
+        row_to_insert = [timestamp, topic, structure, keywords, full_content]
+        
         sheet.append_row(row_to_insert)
         return True
     except Exception as e:
