@@ -1,5 +1,5 @@
 # --- Versioning ---
-__version__ = "1.1.0"
+__version__ = "1.2.0" # Updated version
 
 """
 Module: app.py
@@ -15,10 +15,12 @@ import streamlit as st
 import re
 from utils.gpt_helper import generate_article_package, STRUCTURE_DETAILS
 from utils.g_sheets import connect_to_sheet, write_to_sheet
-from streamlit_extras.keyboard_url import keyboard_to_url
+# Correct way to import the copy_to_clipboard function
 from streamlit_extras.add_vertical_space import add_vertical_space
-# Correct import for the copy button
-import streamlit_extras.core as stx
+from streamlit_extras.streaming_write import write
+from streamlit_extras.stateful_button import button
+from streamlit_extras.copy_to_clipboard import copy_to_clipboard
+
 
 def parse_gpt_output(text):
     """
@@ -113,12 +115,12 @@ if 'generated_package' in st.session_state:
     parsed_package = parse_gpt_output(full_package)
 
     with st.container(border=True):
-        # Display each section in an expander for a clean UI
+        # Display each section in an expander
         for header, content in parsed_package.items():
             if "Context" in header: icon = "🔍"
             elif "keywords" in header: icon = "🔑"
             elif "Reminders" in header: icon = "📝"
-            elif "Draft" in header: icon = "✍️"
+            elif "1st Draft" in header: icon = "✍️"
             elif "checklist" in header: icon = "✅"
             else: icon = "📄"
             
@@ -127,8 +129,9 @@ if 'generated_package' in st.session_state:
         
         add_vertical_space(1)
         
-        # --- NEW: Explicit Copy Button ---
-        stx.copy_to_clipboard(full_package, "Click to Copy Full Output")
+        # --- NEW: Corrected Copy Button ---
+        # The copy_to_clipboard function creates its own button.
+        copy_to_clipboard(full_package, "Click here to copy the full output")
 
 
 # End of app.py
