@@ -1,8 +1,7 @@
-# Version 2.0.0:
-# - Writes the specific keywords used for generation (fetched or generic) to G-Sheets.
-# - Ignores 'Sheet1' when fetching keywords.
+# Version 2.0.1:
+# - Streamlined UI by removing the 'Step 2: Generate Article' header and renumbering steps.
 # Previous versions:
-# - Version 1.9.1: Added fallback logic for keyword fetching.
+# - Version 2.0.0: Writes the specific keywords used for generation to G-Sheets.
 
 """
 Module: app.py
@@ -83,8 +82,7 @@ def main():
     
     add_vertical_space(2)
 
-    # --- Step 2: Generate Article ---
-    st.header("Step 2: Generate Article")
+    # The "Generate" button now appears directly after the options.
     if st.button("Generate & Save Writer's Pack", type="primary"):
         if not topic:
             st.warning("Please enter a topic to generate content.")
@@ -137,12 +135,11 @@ def main():
                 with st.spinner("💾 Saving the pack to Google Sheets..."):
                     sheet = connect_to_sheet()
                     if sheet:
-                        # Pass the same 'keywords_for_generation' list to the writer
                         success = write_to_sheet(
                             sheet, 
                             topic, 
                             structure_choice, 
-                            keywords_for_generation, # This list is now passed
+                            keywords_for_generation,
                             package_content
                         )
                         if success:
@@ -154,9 +151,9 @@ def main():
             else:
                 st.error("Failed to generate content. Please check your API key or try again.")
 
-    # --- Step 3: Review Your Writer's Pack ---
+    # --- Step 2: Review Your Writer's Pack (Renumbered from Step 3) ---
     if 'generated_package' in st.session_state:
-        st.header("Step 3: Review Your Writer's Pack")
+        st.header("Step 2: Review Your Writer's Pack")
         full_package = st.session_state['generated_package']
         parsed_package = st.session_state['parsed_package']
         with st.container(border=True):
