@@ -12,8 +12,8 @@ def connect_to_sheet():
         creds_dict = st.secrets["gcp_service_account"]
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
         client = gspread.authorize(creds)
-        spreadsheet = client.open("Shadee Care Articles")
-        sheet = spreadsheet.worksheet("Generated Content")
+        spreadsheet = client.open("Shadee writer assistant")
+        sheet = spreadsheet.worksheet("Sheet1")
         return sheet
     except Exception as e:
         st.error(f"Error connecting to Google Sheets: {e}")
