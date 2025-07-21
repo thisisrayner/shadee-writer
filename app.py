@@ -1,7 +1,8 @@
-# Version 1.8.1:
-# - Fixed a TypeError caused by adding a dict_keys object to a list.
+# Version 1.9.0:
+# - Replaced keyword fetch button with a default-on checkbox for a streamlined UI.
+# - Keyword fetching now happens silently within the generation process.
 # Previous versions:
-# - Version 1.8.0: Integrated new trend_fetcher module.
+# - Version 1.8.1: Fixed TypeError on dict_keys object.
 
 """
 Module: app.py
@@ -63,40 +64,26 @@ def main():
         placeholder="e.g., 'Overcoming the fear of failure' or a celebrity profile like 'Zendaya's journey with anxiety'"
     )
 
-    # --- THIS BLOCK IS CORRECTED ---
-    structure_keys_list = list(STRUCTURE_DETAILS.keys()) # Convert to list first
+    structure_keys_list = list(STRUCTURE_DETAILS.keys())
     structure_options = structure_keys_list + ["Let GPT Decide for Me"]
     
     structure_choice = st.selectbox(
         "Choose an article structure:",
         options=structure_options,
-        index=len(structure_keys_list) # This correctly defaults to the last item
+        index=len(structure_keys_list)
     )
-    # --- END OF CORRECTION ---
-
-    # --- Step 2: Add Trending Keywords (Optional) ---
-    st.header("Step 2: Add Trending Keywords (Optional)")
-
-    if st.button("Fetch Keywords from Master Sheet"):
-        with st.spinner("Analyzing trends from Google Trends, Reddit, YouTube & Tumblr..."):
-            st.session_state.trending_keywords_list = get_trending_keywords()
-
-    selected_keywords = []
-    if 'trending_keywords_list' in st.session_state and st.session_state.trending_keywords_list is not None:
-        if st.session_state.trending_keywords_list:
-            st.info("Select relevant keywords to include in the article.")
-            selected_keywords = st.multiselect(
-                "Trending Keywords (last 30 days):",
-                options=st.session_state.trending_keywords_list,
-                key='selected_keywords_multiselect'
-            )
-        else:
-            st.success("Fetched keywords, but no new trends were found in the last 30 days.")
-            
+    
+    # NEW: Replaced button with a checkbox, checked by default
+    use_trending_keywords = st.checkbox(
+        "Include trending keywords for SEO", 
+        value=True,
+        help="If checked, the assistant will scan recent trends from Google, Reddit, etc., and use them to optimize the article."
+    )
+    
     add_vertical_space(2)
 
-    # --- Step 3: Generate Article ---
-    st.header("Step 3: Generate Article")
+    # --- Step 2: Generate Article ---
+    st.header("Step 2: Generate Article")
     if st.button("Generate & Save Writer's Pack", type="primary"):
         if not topic:
             st.warning("Please enter a topic to generate content.")
@@ -106,19 +93,34 @@ def main():
             if 'parsed_package' in st.session_state:
                 del st.session_state['parsed_package']
             
+            selected_keywords = []
             package_content = None
-            with st.spinner("✍️ Crafting your writer's pack..."):
+            
+            # Dynamic spinner message
+            spinner_message = "✍️ Crafting your writer's pack"
+            if use_trending_keywords:
+                spinner_message += " with SEO trends..."
+            else:
+                spinner_message += "..."
+
+            with st.spinner(spinner_message):
                 try:
+                    # NEW: Fetch keywords only if the checkbox is checked
+                    if use_trending_keywords:
+                        selected_keywords = get_trending_keywords()
+
+                    # Generate the article, passing the keywords (or an empty list)
                     package_content = generate_article_package(
                         topic, 
                         structure_choice, 
                         keywords=selected_keywords
                     )
                 except Exception as e:
-                    st.error("An error occurred while calling the OpenAI API.")
+                    st.error("An error occurred during content generation.")
                     st.exception(e)
             
             if package_content:
+                # ... (Saving and state management logic is unchanged) ...
                 parsed_package = parse_gpt_output(package_content)
                 st.session_state['generated_package'] = package_content
                 st.session_state['parsed_package'] = parsed_package
@@ -139,9 +141,9 @@ def main():
             else:
                 st.error("Failed to generate content. Please check your API key or try again.")
 
-    # --- Step 4: Review Your Writer's Pack ---
+    # --- Step 3: Review Your Writer's Pack ---
     if 'generated_package' in st.session_state:
-        st.header("Step 4: Review Your Writer's Pack")
+        st.header("Step 3: Review Your Writer's Pack")
         full_package = st.session_state['generated_package']
         parsed_package = st.session_state['parsed_package']
         with st.container(border=True):
