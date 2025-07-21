@@ -1,18 +1,36 @@
+# --- Versioning ---
+__version__ = "1.1.0"
+
+"""
+Module: app.py
+Purpose: The main Streamlit application file for the Shadee Care Writer's Assistant.
+- Renders the user interface.
+- Handles user input for topic and structure.
+- Orchestrates the calls to helper modules for content generation and saving.
+- Displays the final generated content package.
+"""
+
+# --- Imports ---
 import streamlit as st
+import re
 from utils.gpt_helper import generate_article_package, STRUCTURE_DETAILS
 from utils.g_sheets import connect_to_sheet, write_to_sheet
-import re
+from streamlit_extras.keyboard_url import keyboard_to_url
+from streamlit_extras.add_vertical_space import add_vertical_space
+# Correct import for the copy button
+import streamlit_extras.core as stx
 
-# --- Page Configuration ---
-st.set_page_config(
-    page_title="Shadee Care Writer's Assistant",
-    page_icon="🪴",
-    layout="wide"
-)
-
-# --- Helper Function to Parse Output (No changes needed here) ---
 def parse_gpt_output(text):
-    """Parses the structured GPT output into a dictionary."""
+    """
+    Parses the structured GPT output string into a dictionary of sections.
+
+    Args:
+        text (str): The raw text output from the GPT API.
+
+    Returns:
+        dict: A dictionary where keys are section headers (e.g., "Context & Research:")
+              and values are the content of those sections.
+    """
     if not text:
         return {}
     sections = [
@@ -29,11 +47,17 @@ def parse_gpt_output(text):
         parsed_data[header] = content
     return parsed_data
 
-# --- Header ---
+# --- UI Rendering ---
+st.set_page_config(
+    page_title="Shadee Care Writer's Assistant",
+    page_icon="🪴",
+    layout="wide"
+)
+
 st.title("🪴 Shadee Care Writer's Assistant")
 st.markdown("This tool helps you brainstorm and create draft articles for the Shadee Care blog. Just enter a topic and choose a structure!")
 
-# --- Step 1: Define Your Article (No changes here) ---
+# --- Step 1: Define Your Article ---
 st.header("Step 1: Define Your Article")
 
 topic = st.text_input(
@@ -48,7 +72,6 @@ structure_choice = st.selectbox(
     index=len(structure_options) - 1
 )
 
-# --- REVISED: Generate button block with auto-saving logic ---
 if st.button("Generate & Save Writer's Pack", type="primary"):
     if not topic:
         st.warning("Please enter a topic to generate content.")
@@ -56,7 +79,6 @@ if st.button("Generate & Save Writer's Pack", type="primary"):
         if 'generated_package' in st.session_state:
             del st.session_state['generated_package']
 
-        # --- Part 1: Generate Content ---
         package_content = None
         with st.spinner("✍️ Crafting your writer's pack..."):
             try:
@@ -65,7 +87,6 @@ if st.button("Generate & Save Writer's Pack", type="primary"):
                 st.error("An error occurred while calling the OpenAI API.")
                 st.exception(e)
 
-        # --- Part 2: If generation is successful, save to G-Sheets ---
         if package_content:
             st.session_state['generated_package'] = package_content
             st.session_state['topic'] = topic
@@ -78,14 +99,13 @@ if st.button("Generate & Save Writer's Pack", type="primary"):
                     if success:
                         st.success("Writer's Pack generated and saved successfully!")
                     else:
-                        st.warning("Pack was generated, but failed to save to Google Sheets. You can still copy it from below.")
+                        st.warning("Pack was generated, but failed to save to Google Sheets.")
                 else:
-                    st.warning("Pack was generated, but could not connect to Google Sheets to save. You can still copy it from below.")
+                    st.warning("Pack was generated, but could not connect to Google Sheets to save.")
         else:
             st.error("Failed to generate content. Please check your API key or try again.")
 
-
-# --- REVISED: Step 2: Display the output in a container with a copy button ---
+# --- Step 2: Review Your Writer's Pack ---
 if 'generated_package' in st.session_state:
     st.header("Step 2: Review Your Writer's Pack")
     
@@ -94,30 +114,21 @@ if 'generated_package' in st.session_state:
 
     with st.container(border=True):
         # Display each section in an expander for a clean UI
-        if parsed_package.get("Context & Research:"):
-            with st.expander("🔍 Context & Research", expanded=True):
-                st.markdown(parsed_package["Context & Research:"])
+        for header, content in parsed_package.items():
+            if "Context" in header: icon = "🔍"
+            elif "keywords" in header: icon = "🔑"
+            elif "Reminders" in header: icon = "📝"
+            elif "Draft" in header: icon = "✍️"
+            elif "checklist" in header: icon = "✅"
+            else: icon = "📄"
+            
+            with st.expander(f"{icon} {header}", expanded=True):
+                st.markdown(content)
         
-        if parsed_package.get("Important keywords:"):
-            with st.expander("🔑 Important Keywords", expanded=True):
-                st.markdown(parsed_package["Important keywords:"])
-
-        if parsed_package.get("Writing Reminders:"):
-            with st.expander("📝 Writing Reminders", expanded=True):
-                st.markdown(parsed_package["Writing Reminders:"])
-
-        if parsed_package.get("1st Draft:"):
-            with st.expander("✍️ 1st Draft", expanded=True):
-                st.markdown(parsed_package["1st Draft:"])
-
-        if parsed_package.get("Final Draft checklist:"):
-            with st.expander("✅ Final Draft Checklist", expanded=True):
-                st.markdown(parsed_package["Final Draft checklist:"])
+        add_vertical_space(1)
         
-        st.divider()
+        # --- NEW: Explicit Copy Button ---
+        stx.copy_to_clipboard(full_package, "Click to Copy Full Output")
 
-        # Add a simple way to copy the entire raw output
-        with st.expander("📋 Copy Full Output to Clipboard"):
-            st.code(full_package, language="text")
 
-# --- REMOVED: Step 3 is no longer needed as saving is automatic ---
+# End of app.py
