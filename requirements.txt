@@ -1,7 +1,8 @@
 streamlit
 openai
 gspread
-oauth2client
-streamlit-extras
-st-copy-to-clipboard
 pandas
+st-copy-to-clipboard
+streamlit-extras
+google-auth-oauthlib
+google-auth-gspread
