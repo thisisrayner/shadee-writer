@@ -1,7 +1,7 @@
-# Version 1.1.0:
-# - Updated list of worksheets to scan as per user confirmation.
+# Version 1.1.1:
+# - Corrected the case of the DATE_COLUMN constant to 'Post_dt'.
 # Previous versions:
-# - Version 1.0.0: Initial implementation to fetch and process keywords.
+# - Version 1.1.0: Updated list of worksheets to scan.
 
 """
 Module: trend_fetcher.py
@@ -17,10 +17,11 @@ from datetime import datetime, timedelta
 import pandas as pd
 
 # --- Constants ---
-# NEW: Updated list of sheet names to scan
 SHEET_NAMES_TO_SCAN = ["Sheet1", "Google Trends", "Reddit", "Youtube", "Tumblr"]
-DATE_COLUMN = "post_dt"
-KEYWORD_COLUMN = "Keyword" # Assumes this column name is consistent
+# --- THIS LINE IS CORRECTED ---
+# The name of the column containing the dates, matching case exactly.
+DATE_COLUMN = "Post_dt" 
+KEYWORD_COLUMN = "Keyword"
 
 def get_trending_keywords():
     """
@@ -85,6 +86,6 @@ def get_trending_keywords():
 
     except Exception as e:
         st.error(f"Error fetching trending keywords: {e}")
-        return [] # Return empty list on failure to prevent crashes
+        return []
 
 # End of trend_fetcher.py
