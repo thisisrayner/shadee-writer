@@ -1,7 +1,7 @@
-# Version 1.7.0:
-# - Updated to use modern google-auth libraries instead of deprecated oauth2client.
+# Version 1.8.0:
+# - The 'keywords' parameter now accepts the list of keywords used for generation.
 # Previous versions:
-# - Version 1.6.1: Corrected timestamp to use Asia/Singapore timezone.
+# - Version 1.7.0: Updated to use modern google-auth libraries.
 
 """
 Module: g_sheets.py
@@ -16,7 +16,6 @@ import streamlit as st
 import gspread
 from datetime import datetime
 from zoneinfo import ZoneInfo
-# NEW: Import the modern authentication helper
 from google.oauth2.service_account import Credentials
 
 # --- Constants ---
@@ -27,35 +26,22 @@ def add_header_if_missing(sheet):
     Checks if the first row of the sheet matches the expected header.
     If the sheet is empty or the header is incorrect, it inserts the
     correct header row at the top.
-
-    Args:
-        sheet (gspread.Worksheet): The worksheet object to check.
     """
     try:
-        # Attempt to get the first row.
         current_header = sheet.row_values(1)
         if current_header != EXPECTED_HEADER:
-            # If the header exists but is wrong, this is a problem. For now, we'll just insert.
-            # A more robust solution might be to clear and rewrite, but this is safer.
             sheet.insert_row(EXPECTED_HEADER, 1)
     except gspread.exceptions.APIError as e:
-        # This specific error occurs if the sheet is completely empty.
         if "exceeds grid limits" in str(e):
             sheet.insert_row(EXPECTED_HEADER, 1)
         else:
-            # Re-raise any other unexpected API errors.
             raise e
 
 def connect_to_sheet():
     """
     Establishes a connection to the Google Sheet using modern google-auth.
-
-    Returns:
-        gspread.Worksheet or None: The worksheet object if connection is successful,
-                                  otherwise None.
     """
     try:
-        # --- NEW AUTHENTICATION METHOD ---
         scopes = [
             "https://www.googleapis.com/auth/spreadsheets",
             "https://www.googleapis.com/auth/drive",
@@ -76,15 +62,28 @@ def connect_to_sheet():
         st.error(f"Error connecting to Google Sheets (g_sheets.py): {e}")
         return None
 
-def write_to_sheet(sheet, topic, structure, keywords, full_content):
+def write_to_sheet(sheet, topic, structure, keywords_used, full_content):
     """
-    Writes the full generated package to a new row in the sheet, with keywords separated.
+    Writes the full generated package to a new row in the sheet.
+
+    Args:
+        sheet (gspread.Worksheet): The worksheet object to write to.
+        topic (str): The user-provided topic.
+        structure (str): The chosen structure.
+        keywords_used (list[str]): The list of keywords that were injected into the prompt.
+        full_content (str): The entire raw output from the GPT API.
+
+    Returns:
+        bool: True if the write operation was successful, False otherwise.
     """
     try:
         singapore_time = datetime.now(ZoneInfo("Asia/Singapore"))
         timestamp = singapore_time.strftime("%Y-%m-%d %H:%M:%S")
         
-        row_to_insert = [timestamp, topic, structure, keywords, full_content]
+        # Convert the list of keywords into a single comma-separated string for the cell
+        keywords_string = ", ".join(keywords_used)
+        
+        row_to_insert = [timestamp, topic, structure, keywords_string, full_content]
         
         sheet.append_row(row_to_insert)
         return True
