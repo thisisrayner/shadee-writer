@@ -1,5 +1,5 @@
 # --- Versioning ---
-__version__ = "1.2.0" # Updated version
+__version__ = "1.2.1" # Updated version
 
 """
 Module: app.py
@@ -15,10 +15,8 @@ import streamlit as st
 import re
 from utils.gpt_helper import generate_article_package, STRUCTURE_DETAILS
 from utils.g_sheets import connect_to_sheet, write_to_sheet
-# Correct way to import the copy_to_clipboard function
+# Correct, simplified imports from streamlit-extras
 from streamlit_extras.add_vertical_space import add_vertical_space
-from streamlit_extras.streaming_write import write
-from streamlit_extras.stateful_button import button
 from streamlit_extras.copy_to_clipboard import copy_to_clipboard
 
 
@@ -129,8 +127,7 @@ if 'generated_package' in st.session_state:
         
         add_vertical_space(1)
         
-        # --- NEW: Corrected Copy Button ---
-        # The copy_to_clipboard function creates its own button.
+        # Correctly calling the copy_to_clipboard function
         copy_to_clipboard(full_package, "Click here to copy the full output")
 
 
