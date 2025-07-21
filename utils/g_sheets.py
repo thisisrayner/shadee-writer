@@ -1,8 +1,7 @@
-# Version 1.6.1:
-# - Corrected timestamp to use Asia/Singapore timezone.
-# - Fixed date formatting string to correctly display month and day.
+# Version 1.7.0:
+# - Updated to use modern google-auth libraries instead of deprecated oauth2client.
 # Previous versions:
-# - Version 1.6.0: Adopted new documentation and versioning style.
+# - Version 1.6.1: Corrected timestamp to use Asia/Singapore timezone.
 
 """
 Module: g_sheets.py
@@ -15,10 +14,10 @@ Purpose: Handles all interactions with the Google Sheets API for the writer assi
 # --- Imports ---
 import streamlit as st
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
-# NEW: Import ZoneInfo for timezone-aware datetimes
 from zoneinfo import ZoneInfo
+# NEW: Import the modern authentication helper
+from google.oauth2.service_account import Credentials
 
 # --- Constants ---
 EXPECTED_HEADER = ["Timestamp", "Topic", "Structure Choice", "Keywords", "Generated Output"]
@@ -26,42 +25,55 @@ EXPECTED_HEADER = ["Timestamp", "Topic", "Structure Choice", "Keywords", "Genera
 def add_header_if_missing(sheet):
     """
     Checks if the first row of the sheet matches the expected header.
+    If the sheet is empty or the header is incorrect, it inserts the
+    correct header row at the top.
+
+    Args:
+        sheet (gspread.Worksheet): The worksheet object to check.
     """
     try:
+        # Attempt to get the first row.
         current_header = sheet.row_values(1)
+        if current_header != EXPECTED_HEADER:
+            # If the header exists but is wrong, this is a problem. For now, we'll just insert.
+            # A more robust solution might be to clear and rewrite, but this is safer.
+            sheet.insert_row(EXPECTED_HEADER, 1)
     except gspread.exceptions.APIError as e:
+        # This specific error occurs if the sheet is completely empty.
         if "exceeds grid limits" in str(e):
-            current_header = []
+            sheet.insert_row(EXPECTED_HEADER, 1)
         else:
+            # Re-raise any other unexpected API errors.
             raise e
-
-    if current_header != EXPECTED_HEADER:
-        sheet.insert_row(EXPECTED_HEADER, 1)
 
 def connect_to_sheet():
     """
-    Establishes and returns a connection to the Google Sheet worksheet.
+    Establishes a connection to the Google Sheet using modern google-auth.
+
+    Returns:
+        gspread.Worksheet or None: The worksheet object if connection is successful,
+                                  otherwise None.
     """
     try:
-        scope = [
-            "https://spreadsheets.google.com/feeds",
-            'https://www.googleapis.com/auth/spreadsheets',
-            "https://www.googleapis.com/auth/drive.file",
-            "https://www.googleapis.com/auth/drive"
+        # --- NEW AUTHENTICATION METHOD ---
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive",
         ]
-        
-        creds_dict = st.secrets["gcp_service_account"]
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+        creds = Credentials.from_service_account_info(
+            st.secrets["gcp_service_account"],
+            scopes=scopes,
+        )
         client = gspread.authorize(creds)
         
         spreadsheet = client.open("Shadee writer assistant") 
         sheet = spreadsheet.worksheet("Sheet1")
 
         add_header_if_missing(sheet)
-        
         return sheet
+        
     except Exception as e:
-        st.error(f"Error connecting to Google Sheets: {e}")
+        st.error(f"Error connecting to Google Sheets (g_sheets.py): {e}")
         return None
 
 def write_to_sheet(sheet, topic, structure, keywords, full_content):
@@ -69,11 +81,7 @@ def write_to_sheet(sheet, topic, structure, keywords, full_content):
     Writes the full generated package to a new row in the sheet, with keywords separated.
     """
     try:
-        # --- TIMESTAMP LOGIC UPDATED HERE ---
-        # 1. Get the current time specifically for the Singapore timezone.
         singapore_time = datetime.now(ZoneInfo("Asia/Singapore"))
-        
-        # 2. Format that time into a string with the correct format codes (%m and %d).
         timestamp = singapore_time.strftime("%Y-%m-%d %H:%M:%S")
         
         row_to_insert = [timestamp, topic, structure, keywords, full_content]
