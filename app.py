@@ -1,8 +1,8 @@
-# Version 1.9.1:
-# - Added fallback logic: if keyword fetching is enabled but returns no keywords,
-#   proceed with generation normally without displaying an error.
+# Version 2.0.0:
+# - Writes the specific keywords used for generation (fetched or generic) to G-Sheets.
+# - Ignores 'Sheet1' when fetching keywords.
 # Previous versions:
-# - Version 1.9.0: Streamlined UI with a default-on checkbox for SEO keywords.
+# - Version 1.9.1: Added fallback logic for keyword fetching.
 
 """
 Module: app.py
@@ -22,6 +22,8 @@ from utils.trend_fetcher import get_trending_keywords
 from streamlit_extras.add_vertical_space import add_vertical_space
 from st_copy_to_clipboard import st_copy_to_clipboard
 
+# Define generic keywords at a higher scope so they are always available
+GENERIC_KEYWORDS = ["therapy", "anxiety", "depression", "self-care", "wellness", "mental health"]
 
 def parse_gpt_output(text):
     """
@@ -92,7 +94,7 @@ def main():
             if 'parsed_package' in st.session_state:
                 del st.session_state['parsed_package']
             
-            selected_keywords = []
+            keywords_for_generation = []
             package_content = None
             
             spinner_message = "✍️ Crafting your writer's pack"
@@ -103,15 +105,23 @@ def main():
 
             with st.spinner(spinner_message):
                 try:
+                    # Determine which keywords to use for generation
                     if use_trending_keywords:
-                        selected_keywords = get_trending_keywords()
-                        if not selected_keywords:
-                            st.info("No recent trending keywords found. Generating article without SEO keywords.")
-
+                        fetched_keywords = get_trending_keywords()
+                        if fetched_keywords:
+                            keywords_for_generation = fetched_keywords
+                            st.success(f"Successfully used {len(fetched_keywords)} trending keywords for generation.")
+                        else:
+                            st.info("No recent trending keywords found. Using generic SEO keywords instead.")
+                            keywords_for_generation = GENERIC_KEYWORDS
+                    else:
+                        keywords_for_generation = GENERIC_KEYWORDS
+                    
+                    # Generate the article using the determined keyword list
                     package_content = generate_article_package(
                         topic, 
                         structure_choice, 
-                        keywords=selected_keywords
+                        keywords=keywords_for_generation
                     )
                 except Exception as e:
                     st.error("An error occurred during content generation.")
@@ -127,8 +137,14 @@ def main():
                 with st.spinner("💾 Saving the pack to Google Sheets..."):
                     sheet = connect_to_sheet()
                     if sheet:
-                        keywords_text = parsed_package.get("Important keywords:", "").strip()
-                        success = write_to_sheet(sheet, topic, structure_choice, keywords_text, package_content)
+                        # Pass the same 'keywords_for_generation' list to the writer
+                        success = write_to_sheet(
+                            sheet, 
+                            topic, 
+                            structure_choice, 
+                            keywords_for_generation, # This list is now passed
+                            package_content
+                        )
                         if success:
                             st.success("Writer's Pack generated and saved successfully!")
                         else:
