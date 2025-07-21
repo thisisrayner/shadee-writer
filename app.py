@@ -1,5 +1,5 @@
 # --- Versioning ---
-__version__ = "1.2.1" # Updated version
+__version__ = "1.3.0" # Updated version for new dependency
 
 """
 Module: app.py
@@ -15,9 +15,9 @@ import streamlit as st
 import re
 from utils.gpt_helper import generate_article_package, STRUCTURE_DETAILS
 from utils.g_sheets import connect_to_sheet, write_to_sheet
-# Correct, simplified imports from streamlit-extras
 from streamlit_extras.add_vertical_space import add_vertical_space
-from streamlit_extras.copy_to_clipboard import copy_to_clipboard
+# Correct import from the newly added package
+from st_copy_to_clipboard import st_copy_to_clipboard
 
 
 def parse_gpt_output(text):
@@ -127,8 +127,8 @@ if 'generated_package' in st.session_state:
         
         add_vertical_space(1)
         
-        # Correctly calling the copy_to_clipboard function
-        copy_to_clipboard(full_package, "Click here to copy the full output")
+        # Correctly calling the copy_to_clipboard function from the new package
+        st_copy_to_clipboard(full_package, "Click here to copy the full output")
 
 
 # End of app.py
