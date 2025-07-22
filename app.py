@@ -1,8 +1,8 @@
-# Version 2.3.1:
-# - Fixed a critical IndentationError in the main processing block.
-# - Cleaned up the main processing logic for better readability.
+# Version 2.3.2:
+# - Corrected the WordPress confirmation flow to ensure success/error messages are always displayed.
+# - Removed unnecessary st.rerun() calls that were hiding action feedback.
 # Previous versions:
-# - Version 2.3.0: Implemented logic to disable the 'Generate' button during processing.
+# - Version 2.3.1: Fixed a critical IndentationError.
 
 """
 Module: app.py
@@ -87,11 +87,9 @@ def main():
     )
 
     if st.session_state.processing:
-        # This entire block is now correctly structured
         try:
             if not topic:
                 st.warning("Please enter a topic to generate content.")
-                # We stop processing here if the topic is empty
             else:
                 keywords_for_generation = []
                 package_content = None
@@ -160,28 +158,43 @@ def main():
             # --- WORDPRESS PUBLISHING SECTION ---
             st.divider()
             st.subheader("Publishing Options")
+            
+            # The placeholder ensures the UI elements can be replaced cleanly.
+            wp_placeholder = st.empty()
+
             if st.session_state.get('confirm_wordpress_send'):
-                st.warning("Are you sure you want to proceed?")
-                col1, col2, _ = st.columns([1, 1, 5])
-                with col1:
-                    if st.button("✅ Yes, proceed"):
-                        post_title = parsed_package.get("Title", "").strip()
-                        post_content = parsed_package.get("1st Draft", "").strip()
-                        if not post_title or not post_content:
-                            st.error("Action failed: Could not find a valid Title or 1st Draft to send.")
-                        else:
-                            with st.spinner("Sending content to WordPress..."):
-                                create_wordpress_draft(post_title, post_content)
-                        st.session_state.confirm_wordpress_send = False
-                        st.rerun()
-                with col2:
-                    if st.button("❌ No, cancel"):
-                        st.session_state.confirm_wordpress_send = False
-                        st.rerun()
+                with wp_placeholder.container():
+                    st.warning("""
+                    This will send the generated 1st draft directly to the Shadee.Care website. 
+                    **Are you sure you want to proceed?**
+                    """)
+                    col1, col2, _ = st.columns([1, 1, 5])
+                    with col1:
+                        if st.button("✅ Yes, proceed"):
+                            post_title = parsed_package.get("Title", "").strip()
+                            post_content = parsed_package.get("1st Draft", "").strip()
+                            
+                            # Perform the action and let the function display feedback.
+                            if not post_title or not post_content:
+                                st.error("Action failed: Could not find a valid Title or 1st Draft to send.")
+                            else:
+                                with st.spinner("Sending content to WordPress..."):
+                                    create_wordpress_draft(post_title, post_content)
+                            
+                            # Reset the state but DO NOT rerun yet, so the message above is visible.
+                            st.session_state.confirm_wordpress_send = False
+
+                    with col2:
+                        if st.button("❌ No, cancel"):
+                            # If canceling, we just want to reset the state and UI immediately.
+                            st.session_state.confirm_wordpress_send = False
+                            st.rerun() # This will make the dialog disappear instantly.
             else:
-                if st.button("🚀 Send to WordPress as Draft"):
-                    st.session_state.confirm_wordpress_send = True
-                    st.rerun()
+                with wp_placeholder.container():
+                    if st.button("🚀 Send to WordPress as Draft"):
+                        # Set the state and rerun to show the confirmation dialog.
+                        st.session_state.confirm_wordpress_send = True
+                        st.rerun()
 
 if __name__ == "__main__":
     main()
