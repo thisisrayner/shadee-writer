@@ -1,8 +1,8 @@
-# Version 2.1.0:
-# - Added a "Send to WordPress as Draft" button and corresponding logic.
-# - Updated the parser to look for the new 'Title:' field from the GPT output.
+# Version 2.2.0:
+# - Added a confirmation dialog before sending a post to WordPress to prevent accidents.
+# - Made the GPT output parser more robust to fix the 'Could not find Title' bug.
 # Previous versions:
-# - Version 2.0.1: Streamlined UI by removing redundant headers.
+# - Version 2.1.0: Added a "Send to WordPress as Draft" button.
 
 """
 Module: app.py
@@ -19,7 +19,6 @@ import re
 from utils.gpt_helper import generate_article_package, STRUCTURE_DETAILS
 from utils.g_sheets import connect_to_sheet, write_to_sheet
 from utils.trend_fetcher import get_trending_keywords
-# NEW: Import the WordPress helper
 from utils.wordpress_helper import create_wordpress_draft
 from streamlit_extras.add_vertical_space import add_vertical_space
 from st_copy_to_clipboard import st_copy_to_clipboard
@@ -30,22 +29,34 @@ GENERIC_KEYWORDS = ["therapy", "anxiety", "depression", "self-care", "wellness",
 def parse_gpt_output(text):
     """
     Parses the structured GPT output string into a dictionary of sections.
+    This version is more robust to handle missing colons and extra whitespace.
     """
     if not text:
         return {}
-    # NEW: Add "Title:" to the list of sections to parse
+        
+    # Define sections without the colon for more flexible matching
     sections = [
-        "Title:", "Context & Research:", "Important keywords:", "Writing Reminders:",
-        "1st Draft:", "Final Draft checklist:"
+        "Title", "Context & Research", "Important keywords", "Writing Reminders",
+        "1st Draft", "Final Draft checklist"
     ]
-    parsed_data = {}
-    parts = re.split(r'(?i)\b(' + '|'.join(re.escape(s) for s in sections) + r')\b', text)
+    
+    # Create a regex pattern that looks for the section headers, case-insensitively
+    pattern = re.compile(r'^\s*(' + '|'.join(re.escape(s) for s in sections) + r')\s*:', re.IGNORECASE | re.MULTILINE)
+    
+    # Split the text by these headers
+    parts = pattern.split(text)
+    
     if len(parts) < 2:
-        return {"Full Response": text}
+        return {"Full Response": text} # Fallback if no headers are found
+
+    parsed_data = {}
+    # The first part is anything before the first header, which we ignore
+    # Then, we iterate through header-content pairs
     for i in range(1, len(parts), 2):
-        header = parts[i].strip()
+        header = parts[i].strip() # This is the captured header, e.g., "Title"
         content = parts[i+1].strip()
         parsed_data[header] = content
+        
     return parsed_data
 
 
@@ -58,6 +69,10 @@ def main():
         page_icon="🪴",
         layout="wide"
     )
+
+    # Initialize session state for the confirmation dialog
+    if 'confirm_wordpress_send' not in st.session_state:
+        st.session_state.confirm_wordpress_send = False
 
     st.title("🪴 Shadee Care Writer's Assistant")
     st.markdown("This tool helps you brainstorm and create draft articles for the Shadee Care blog.")
@@ -87,22 +102,19 @@ def main():
     add_vertical_space(2)
 
     if st.button("Generate & Save Writer's Pack", type="primary"):
+        # Reset confirmation state on new generation
+        st.session_state.confirm_wordpress_send = False
         if not topic:
             st.warning("Please enter a topic to generate content.")
         else:
-            if 'generated_package' in st.session_state:
-                del st.session_state['generated_package']
-            if 'parsed_package' in st.session_state:
-                del st.session_state['parsed_package']
+            if 'generated_package' in st.session_state: del st.session_state['generated_package']
+            if 'parsed_package' in st.session_state: del st.session_state['parsed_package']
             
             keywords_for_generation = []
             package_content = None
             
-            spinner_message = "✍️ Crafting your writer's pack"
-            if use_trending_keywords:
-                spinner_message += " with SEO trends..."
-            else:
-                spinner_message += "..."
+            spinner_message = "✍️ Crafting your writer's pack..."
+            if use_trending_keywords: spinner_message = "✍️ Crafting with SEO trends..."
 
             with st.spinner(spinner_message):
                 try:
@@ -110,18 +122,15 @@ def main():
                         fetched_keywords = get_trending_keywords()
                         if fetched_keywords:
                             keywords_for_generation = fetched_keywords
-                            st.success(f"Successfully used {len(fetched_keywords)} trending keywords for generation.")
+                            st.success(f"Successfully used {len(fetched_keywords)} trending keywords.")
                         else:
-                            st.info("No recent trending keywords found. Using generic SEO keywords instead.")
+                            st.info("No recent trends found. Using generic SEO keywords instead.")
                             keywords_for_generation = GENERIC_KEYWORDS
                     else:
                         keywords_for_generation = GENERIC_KEYWORDS
                     
                     package_content = generate_article_package(
-                        topic, 
-                        structure_choice, 
-                        keywords=keywords_for_generation
-                    )
+                        topic, structure_choice, keywords=keywords_for_generation)
                 except Exception as e:
                     st.error("An error occurred during content generation.")
                     st.exception(e)
@@ -133,22 +142,16 @@ def main():
                 st.session_state['topic'] = topic
                 st.session_state['structure_choice'] = structure_choice
 
-                with st.spinner("💾 Saving the pack to Google Sheets..."):
+                with st.spinner("💾 Saving to Google Sheets..."):
                     sheet = connect_to_sheet()
                     if sheet:
                         success = write_to_sheet(
-                            sheet, 
-                            topic, 
-                            structure_choice, 
-                            keywords_for_generation,
-                            package_content
-                        )
-                        if success:
-                            st.success("Writer's Pack generated and saved successfully!")
-                        else:
-                            st.warning("Pack was generated, but failed to save to Google Sheets.")
+                            sheet, topic, structure_choice, 
+                            keywords_for_generation, package_content)
+                        if success: st.success("Pack saved successfully to Google Sheets!")
+                        else: st.warning("Pack generated, but failed to save to Google Sheets.")
                     else:
-                        st.warning("Pack was generated, but could not connect to Google Sheets to save.")
+                        st.warning("Pack generated, but could not connect to Google Sheets.")
             else:
                 st.error("Failed to generate content. Please check your API key or try again.")
 
@@ -171,23 +174,41 @@ def main():
                     st.markdown(content)
             
             add_vertical_space(1)
-            
             st_copy_to_clipboard(full_package, "Click here to copy the full output")
 
-            # --- NEW: WORDPRESS BUTTON SECTION ---
+            # --- WORDPRESS PUBLISHING SECTION WITH CONFIRMATION ---
             st.divider()
             st.subheader("Publishing Options")
+
+            # If the confirmation state is active, show the warning and Yes/No buttons
+            if st.session_state.get('confirm_wordpress_send'):
+                st.warning("""
+                This will send the generated 1st draft directly to the Shadee.Care website. 
+                You are highly encouraged to do further edits and refinement to the draft.
+                Please do not send unnecessary drafts to the website as it'll require additional effort to manually delete them.
+                
+                **Are you sure you want to proceed?**
+                """)
+                col1, col2, _ = st.columns([1, 1, 5])
+                with col1:
+                    if st.button("✅ Yes, proceed"):
+                        post_title = parsed_package.get("Title", "").strip()
+                        post_content = parsed_package.get("1st Draft", "").strip()
+                        if not post_title or not post_content:
+                            st.error("Action failed: Could not find a valid Title or 1st Draft to send.")
+                        else:
+                            with st.spinner("Sending content to WordPress..."):
+                                create_wordpress_draft(post_title, post_content)
+                        st.session_state.confirm_wordpress_send = False # Reset state
+                with col2:
+                    if st.button("❌ No, cancel"):
+                        st.session_state.confirm_wordpress_send = False # Reset state
             
-            if st.button("🚀 Send to WordPress as Draft"):
-                post_title = parsed_package.get("Title:", "").strip()
-                post_content = parsed_package.get("1st Draft:", "").strip()
-
-                if not post_title or not post_content:
-                    st.warning("Could not find a valid Title or 1st Draft in the generated content to send.")
-                else:
-                    with st.spinner("Sending content to WordPress..."):
-                        create_wordpress_draft(post_title, post_content)
-
+            # Otherwise, show the initial "Send" button
+            else:
+                if st.button("🚀 Send to WordPress as Draft"):
+                    st.session_state.confirm_wordpress_send = True # Set state to show confirmation
+                    st.rerun() # Rerun to show the confirmation dialog immediately
 
 if __name__ == "__main__":
     main()
