@@ -1,14 +1,14 @@
-# Version 1.9.2:
-# - Verified and restored the BASE_PROMPT to fix a potential corruption issue
-#   that was causing malformed API requests.
+# Version 2.0.0:
+# - Added a 'research_context' parameter to inject live web research into the prompt.
+# - Updated BASE_PROMPT to instruct the AI to use the new research.
 # Previous versions:
-# - Version 1.9.1: Renamed "Let GPT Decide for Me" to "Let AI decide".
+# - Version 1.9.2: Verified and restored the BASE_PROMPT template.
 
 """
 Module: gpt_helper.py
-Purpose: Contains all logic for interacting with the OpenAI GPT API.
+Purpose: Contains all logic for interacting with the OpenAI GPT API (the "writer" stage).
 - Defines article structures and prompt templates.
-- Constructs the final prompt based on user input.
+- Constructs the final prompt, incorporating live web research and keywords.
 - Calls the OpenAI API and returns the generated content.
 """
 
@@ -67,10 +67,14 @@ Your role is to help Shadee.Care writers create emotionally resonant, culturally
 
 {keyword_section}
 
+📚 Live Web Research Summary:
+Based on a live web search, here is the most current information on the topic. Use this as your primary source of truth to ensure the article is accurate, fact-based, and up-to-date.
+---
+{research_context}
+---
+
 🔍 Context and Research:
-- Fact-check gate – confirm headline facts (awards, birth year, sales totals) via two reputable sources. If uncertain, hedge (“multiple Grammys”) or omit.
-- Background: Provide a brief overview, including recent news, trending moments, or significant struggles the celebrity has publicly shared.
-- Behind-the-Scenes Insights: Include lesser-known stories, challenges, or surprising details that add depth.
+Your task is to rewrite the 'Live Web Research Summary' above into the 'Context & Research' section of the writer's pack. Synthesize it, improve the flow, and ensure it fits the brand's tone. Do not simply copy it. If the research summary is empty or irrelevant, generate this section based on your own knowledge of the topic.
 
 🔑 Keyword Strategy:
 - Always-On Keywords: Include high-interest, low-volatility keywords like therapy, anxiety, depression, self-care where relevant.
@@ -123,9 +127,9 @@ Write a 2-sentence comfort note if the article covers self-harm, ED, severe dist
 - Final Draft checklist: [...]
 """
 
-def generate_article_package(topic, structure_choice, keywords=None):
+def generate_article_package(topic, structure_choice, keywords=None, research_context="No live web research was provided."):
     """
-    Builds the complete prompt, optionally including keywords, and calls the OpenAI API.
+    Builds the complete prompt, including keywords and live research, and calls the OpenAI API.
     """
     keyword_section = ""
     if keywords:
@@ -144,7 +148,6 @@ First, analyze the topic and decide which of these three structures would be mos
 {all_structures}
 """
     else:
-        # This will now only be called with valid keys from the dictionary
         selected_structure_detail = STRUCTURE_DETAILS[structure_choice]
         structure_instructions = f"""
 📂 Follow this Specific Structure for the Draft:
@@ -155,7 +158,8 @@ You must use the following structure for the first draft.
     final_prompt = BASE_PROMPT.format(
         topic=topic,
         keyword_section=keyword_section,
-        structure_instructions=structure_instructions
+        structure_instructions=structure_instructions,
+        research_context=research_context
     )
     
     response = openai.chat.completions.create(
