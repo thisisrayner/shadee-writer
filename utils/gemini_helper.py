@@ -1,5 +1,8 @@
-# Version 1.0.0:
-# - Initial implementation of the Gemini web research function.
+# Version 1.1.0:
+# - Switched the research model to 'gemini-1.5-flash' to leverage the free tier
+#   with web grounding.
+# Previous versions:
+# - Version 1.0.0: Initial implementation of the Gemini web research function.
 
 """
 Module: gemini_helper.py
@@ -14,7 +17,7 @@ from google.generativeai.types import HarmCategory, HarmBlockThreshold
 
 def perform_web_research(topic: str) -> dict | None:
     """
-    Uses Gemini with web search to generate a research summary and list of sources.
+    Uses Gemini 1.5 Flash with web search to generate a research summary and list of sources.
 
     Args:
         topic (str): The user-provided topic to research.
@@ -29,8 +32,6 @@ def perform_web_research(topic: str) -> dict | None:
         genai.configure(api_key=gemini_api_key)
 
         # --- Define the Research Prompt ---
-        # This prompt is crucial. It instructs Gemini to use its tools and
-        # structure the output in a parsable way.
         research_prompt = f"""
         You are a world-class research assistant. Your goal is to gather the most relevant,
         up-to-date information on the following topic from the web.
@@ -50,13 +51,13 @@ def perform_web_research(topic: str) -> dict | None:
         - https://www.example.com/article-1
         - https://www.example.com/news-story-2
         - https://www.anothersite.com/blog-post-3
-        """
+        
 
         # --- Set up the Model with the Search Tool ---
-        # Using gemini-1.5-flash for speed and cost-effectiveness.
-        # The 'Tool' object enables the built-in Google Search functionality.
+        # UPDATED: Using the specified Gemini 1.5 Flash model.
+        # The 'Tool' object enables the built-in "Grounding with Google Search" functionality.
         model = genai.GenerativeModel(
-            model_name='gemini-1.5-flash',
+            model_name='gemini-1.5-flash-latest',
             tools=['google_search_retrieval']
         )
         
@@ -74,8 +75,11 @@ def perform_web_research(topic: str) -> dict | None:
 
         # --- Parse the Response ---
         full_text = response.text
-        summary_part = full_text.split("Sources:")[0].strip()
-        sources_part = full_text.split("Sources:")[1] if "Sources:" in full_text else ""
+        
+        # Split robustly, handling cases where "Sources:" might be missing
+        parts = full_text.split("Sources:")
+        summary_part = parts[0].strip()
+        sources_part = parts[1] if len(parts) > 1 else ""
         
         sources_list = [line.strip().lstrip('- ') for line in sources_part.split('\n') if line.strip().startswith('http')]
         
