@@ -1,8 +1,7 @@
-# Version 3.1.1:
-# - Corrected the role-based UI logic to ensure the "Publishing Options" section
-#   is completely hidden for non-WordPress users.
+# Version 3.1.2:
+# - Renamed "Let GPT Decide for Me" to "Let AI decide" in the UI for clarity.
 # Previous versions:
-# - Version 3.1.0: Implemented role-based access for the WordPress button.
+# - Version 3.1.1: Corrected role-based UI logic for the WordPress button.
 
 """
 Module: app.py
@@ -76,9 +75,18 @@ def run_main_app():
         "Enter the article topic:",
         placeholder="e.g., 'Overcoming the fear of failure' or a celebrity profile like 'Zendaya's journey with anxiety'"
     )
+
+    # --- UPDATED LOGIC HERE ---
     structure_keys_list = list(STRUCTURE_DETAILS.keys())
-    structure_options = structure_keys_list + ["Let GPT Decide for Me"]
-    structure_choice = st.selectbox("Choose an article structure:", options=structure_options, index=len(structure_keys_list))
+    structure_options = structure_keys_list + ["Let AI decide"] # Changed text
+    
+    structure_choice = st.selectbox(
+        "Choose an article structure:", 
+        options=structure_options, 
+        index=len(structure_keys_list) # This correctly defaults to the last item
+    )
+    # --- END OF UPDATE ---
+    
     use_trending_keywords = st.checkbox("Include trending keywords for SEO", value=True)
     add_vertical_space(2)
 
@@ -138,13 +146,11 @@ def run_main_app():
             add_vertical_space(1)
             st_copy_to_clipboard(full_package, "Click here to copy the full output")
 
-            # --- ROLE-BASED UI FOR WORDPRESS (CORRECTED) ---
             try:
                 wordpress_allowed_users = st.secrets.get("authentication", {}).get("WORDPRESS_USERS", [])
             except Exception:
                 wordpress_allowed_users = []
 
-            # The entire publishing block is now inside this 'if' statement
             if st.session_state.username in wordpress_allowed_users:
                 st.divider()
                 st.subheader("Publishing Options")
@@ -193,7 +199,7 @@ def login_screen():
         if submitted:
             try:
                 expected_password = st.secrets["authentication"]["COMMON_PASSWORD"]
-                whitelisted_users = st.secrets["authentication"]["WHITELISTED_USERNAMES"]
+                whitelisted_users = st.secrets["authentication"]["WHITELISTED_USERS_LOWERCASE"]
 
                 if username in whitelisted_users and password == expected_password:
                     st.session_state.authenticated = True
