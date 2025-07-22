@@ -51,7 +51,7 @@ def perform_web_research(topic: str) -> dict | None:
         - https://www.example.com/article-1
         - https://www.example.com/news-story-2
         - https://www.anothersite.com/blog-post-3
-        
+        """
 
         # --- Set up the Model with the Search Tool ---
         # UPDATED: Using the specified Gemini 1.5 Flash model.
