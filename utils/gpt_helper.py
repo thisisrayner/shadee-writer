@@ -1,7 +1,7 @@
-# Version 1.8.0:
-# - Modified prompt and function to accept and use a list of keywords.
+# Version 1.9.0:
+# - Modified prompt to explicitly request a 'Title:' field in the output for easier parsing.
 # Previous versions:
-# - Version 1.7.0: Switched model to gpt-4o-mini.
+# - Version 1.8.0: Modified prompt and function to accept and use a list of keywords.
 
 """
 Module: gpt_helper.py
@@ -114,6 +114,7 @@ Write a 2-sentence comfort note if the article covers self-harm, ED, severe dist
 - Focus on Positive Outcomes and block harmful contexts.
 
 📝Output expects (Follow strictly):
+- Title: [A compelling, SEO-friendly title, <= 60 characters]
 - Context & Research: [...]
 - Important keywords: [...]
 - Writing Reminders: [...]
@@ -124,14 +125,6 @@ Write a 2-sentence comfort note if the article covers self-harm, ED, severe dist
 def generate_article_package(topic, structure_choice, keywords=None):
     """
     Builds the complete prompt, optionally including keywords, and calls the OpenAI API.
-
-    Args:
-        topic (str): The article topic provided by the user.
-        structure_choice (str): The name of the article structure selected by the user.
-        keywords (list[str], optional): A list of keywords to include. Defaults to None.
-    
-    Returns:
-        str or None: The complete text response from the GPT API, or None if an error occurs.
     """
     keyword_section = ""
     if keywords:
