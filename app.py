@@ -1,7 +1,8 @@
-# Version 3.0.1:
-# - Fixed a critical IndentationError in the results display loop.
+# Version 3.0.2:
+# - Reverted topic input placeholder text to the preferred, more descriptive version.
+# - Reverted the WordPress confirmation warning to the preferred, more detailed version.
 # Previous versions:
-# - Version 3.0.0: Implemented a login screen and username logging.
+# - Version 3.0.1: Fixed a critical IndentationError in the results display loop.
 
 """
 Module: app.py
@@ -71,7 +72,11 @@ def run_main_app():
     st.markdown("This tool helps you brainstorm and create draft articles for the Shadee.Care blog.")
     
     st.header("Step 1: Define Your Article")
-    topic = st.text_input("Enter the article topic:", placeholder="e.g., 'Zendaya's journey with anxiety'")
+    # REVERTED: Restored the original, more descriptive placeholder text.
+    topic = st.text_input(
+        "Enter the article topic:",
+        placeholder="e.g., 'Overcoming the fear of failure' or a celebrity profile like 'Zendaya's journey with anxiety'"
+    )
     structure_keys_list = list(STRUCTURE_DETAILS.keys())
     structure_options = structure_keys_list + ["Let GPT Decide for Me"]
     structure_choice = st.selectbox("Choose an article structure:", options=structure_options, index=len(structure_keys_list))
@@ -120,7 +125,6 @@ def run_main_app():
         full_package = st.session_state.generated_package
         parsed_package = st.session_state.parsed_package
         with st.container(border=True):
-            # --- THIS BLOCK IS CORRECTED ---
             for header, content in parsed_package.items():
                 icon = "📄"
                 if "Title" in header: icon = "🏷️"
@@ -137,11 +141,18 @@ def run_main_app():
 
             st.divider()
             st.subheader("Publishing Options")
-            # --- WordPress confirmation logic ---
+            
             wp_placeholder = st.empty()
             if st.session_state.get('confirm_wordpress_send'):
                 with wp_placeholder.container():
-                    st.warning("Are you sure you want to proceed?")
+                    # REVERTED: Restored the original, more detailed warning message.
+                    st.warning("""
+                    This will send the generated 1st draft directly to the Shadee.Care website. 
+                    You are highly encouraged to do further edits and refinement to the draft.
+                    Please do not send unnecessary drafts to the website as it'll require additional effort to manually delete them.
+                    
+                    **Are you sure you want to proceed?**
+                    """)
                     col1, col2, _ = st.columns([1, 1, 5])
                     with col1:
                         if st.button("✅ Yes, proceed"):
