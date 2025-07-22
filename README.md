@@ -17,10 +17,6 @@ The project is organized into a main application file and a `utils` directory co
 
     
 
-IGNORE_WHEN_COPYING_START
-Use code with caution. Markdown
-IGNORE_WHEN_COPYING_END
-
 shadee-writer/
 ├── .streamlit/
 │ └── secrets.toml # Stores API keys and credentials
@@ -46,10 +42,6 @@ git clone <your-repository-url>
 cd shadee-writer
 
     
-
-IGNORE_WHEN_COPYING_START
-Use code with caution.
-IGNORE_WHEN_COPYING_END
 2. Set Up a Virtual Environment (Recommended)
 Generated bash
 
@@ -59,9 +51,6 @@ source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
 
     
 
-IGNORE_WHEN_COPYING_START
-Use code with caution. Bash
-IGNORE_WHEN_COPYING_END
 3. Install Dependencies
 Generated bash
 
@@ -69,10 +58,6 @@ Generated bash
 pip install -r requirements.txt
 
     
-
-IGNORE_WHEN_COPYING_START
-Use code with caution. Bash
-IGNORE_WHEN_COPYING_END
 4. Configure Credentials
 
 The application requires API keys for OpenAI and Google Cloud. These are stored securely in a secrets.toml file.
@@ -104,9 +89,6 @@ client_id = "your-client-id"
 
     
 
-IGNORE_WHEN_COPYING_START
-Use code with caution. Toml
-IGNORE_WHEN_COPYING_END
 5. Google Sheets Setup
 
     Shadee writer assistant (Output Sheet): Ensure this Google Sheet exists. Share it with the client_email from your service account credentials, granting "Editor" permissions. The app will automatically create the Sheet1 and Keyword Cache tabs if they don't exist.
