@@ -100,7 +100,7 @@ def run_main_app():
                 if research_data and research_data.get("summary"):
                     st.success(f"Web research complete! Found {len(research_data.get('sources', []))} relevant sources.")
                     research_context = research_data['summary']
-                    st.session_state.research_data = research_data # Store the whole dict
+                    st.session_state.research_data = research_data
                 else:
                     st.warning("Web research failed or returned no content. The article will be based on the AI's existing knowledge.")
                     st.session_state.research_data = {"summary": research_context, "sources": []}
@@ -158,7 +158,6 @@ def run_main_app():
                 with st.expander(f"{icon} {header}", expanded=True):
                     st.markdown(content)
             
-            # --- NEW: Display Research Sources ---
             research_sources = st.session_state.get('research_data', {}).get('sources', [])
             if research_sources:
                 with st.expander("📚 Research Sources", expanded=True):
@@ -179,19 +178,81 @@ def run_main_app():
                 
                 wp_placeholder = st.empty()
                 if st.session_state.get('confirm_wordpress_send'):
-                    # ... (WordPress confirmation logic is unchanged) ...
+                    with wp_placeholder.container():
+                        st.warning("""
+                        This will send the generated 1st draft directly to the Shadee.Care website. 
+                        You are highly encouraged to do further edits and refinement to the draft.
+                        Please do not send unnecessary drafts to the website as it'll require additional effort to manually delete them.
+                        
+                        **Are you sure you want to proceed?**
+                        """)
+                        col1, col2, _ = st.columns([1, 1, 5])
+                        with col1:
+                            if st.button("✅ Yes, proceed"):
+                                post_title = parsed_package.get("Title", "").strip()
+                                post_content = parsed_package.get("1st Draft", "").strip()
+                                if not post_title or not post_content:
+                                    st.error("Action failed: Could not find Title or 1st Draft.")
+                                else:
+                                    with st.spinner("Sending to WordPress..."):
+                                        create_wordpress_draft(post_title, post_content)
+                                st.session_state.confirm_wordpress_send = False
+                        with col2:
+                            if st.button("❌ No, cancel"):
+                                st.session_state.confirm_wordpress_send = False
+                                st.rerun()
                 else:
                     with wp_placeholder.container():
                         if st.button("🚀 Send to WordPress as Draft"):
                             st.session_state.confirm_wordpress_send = True
                             st.rerun()
 
-# --- Login Screen Logic & Main App Router ---
+# --- Login Screen Logic ---
 def login_screen():
-    # ... (function is unchanged) ...
+    """Renders the login screen and handles authentication."""
+    st.title("Shadee.Care Writer's Assistant Login")
+    
+    with st.form("login_form"):
+        username = st.text_input("Username").lower()
+        password = st.text_input("Password", type="password")
+        submitted = st.form_submit_button("Login")
 
+        if submitted:
+            try:
+                expected_password = st.secrets["authentication"]["COMMON_PASSWORD"]
+                whitelisted_users = st.secrets["authentication"]["WHITELISTED_USERNAMES"]
+
+                if username in whitelisted_users and password == expected_password:
+                    st.session_state.authenticated = True
+                    st.session_state.username = username
+                    st.rerun()
+                else:
+                    st.error("Invalid username or password.")
+            except KeyError:
+                st.error("Authentication is not configured correctly in secrets.toml.")
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
+
+# --- Main App Router ---
 def main():
-    # ... (function is unchanged) ...
+    """The main function that routes to login or the app."""
+    st.set_page_config(page_title="Shadee.Care Writer's Assistant", page_icon="🪴", layout="wide")
+
+    if 'authenticated' not in st.session_state:
+        st.session_state.authenticated = False
+    if 'username' not in st.session_state:
+        st.session_state.username = ""
+    if 'processing' not in st.session_state:
+        st.session_state.processing = False
+    if 'confirm_wordpress_send' not in st.session_state:
+        st.session_state.confirm_wordpress_send = False
+    if 'research_data' not in st.session_state:
+        st.session_state.research_data = {"summary": "", "sources": []}
+
+    if st.session_state.authenticated:
+        run_main_app()
+    else:
+        login_screen()
 
 if __name__ == "__main__":
     main()
