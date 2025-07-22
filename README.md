@@ -31,7 +31,7 @@ shadee-writer/
 ├── app.py # The main Streamlit application file
 ├── requirements.txt # Lists all Python package dependencies
 ├── README.md # This file
-└── AGENT.md # Onboarding guide for developers and AI agents
+└── AGENTS.md # Onboarding guide for developers and AI agents
 Generated code
 
       
