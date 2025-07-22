@@ -1,14 +1,14 @@
-# Version 2.0.0:
-# - Added a 'research_context' parameter to inject live web research into the prompt.
-# - Updated BASE_PROMPT to instruct the AI to use the new research.
+# Version 1.9.3:
+# - Added a "Punctuation Constraint" to the BASE_PROMPT to discourage the AI from
+#   using em dashes, promoting a more human-like writing style.
 # Previous versions:
 # - Version 1.9.2: Verified and restored the BASE_PROMPT template.
 
 """
 Module: gpt_helper.py
-Purpose: Contains all logic for interacting with the OpenAI GPT API (the "writer" stage).
+Purpose: Contains all logic for interacting with the OpenAI GPT API.
 - Defines article structures and prompt templates.
-- Constructs the final prompt, incorporating live web research and keywords.
+- Constructs the final prompt based on user input.
 - Calls the OpenAI API and returns the generated content.
 """
 
@@ -85,6 +85,7 @@ Your task is to rewrite the 'Live Web Research Summary' above into the 'Context 
 - Tone: Be empathetic, supportive, and conversational, like talking to a close friend.
 - Personal Connection: Always connect the topic to the reader’s own life, making it relatable and reflective.
 - Call to Action: End with a reflective question or a small, empowering step for the reader.
+- **Punctuation Constraint:** Avoid using em dashes (—). Opt for commas, periods, or rephrasing the sentence instead.
 
 {structure_instructions}
 
@@ -129,7 +130,7 @@ Write a 2-sentence comfort note if the article covers self-harm, ED, severe dist
 
 def generate_article_package(topic, structure_choice, keywords=None, research_context="No live web research was provided."):
     """
-    Builds the complete prompt, including keywords and live research, and calls the OpenAI API.
+    Builds the complete prompt, optionally including keywords and research, and calls the OpenAI API.
     """
     keyword_section = ""
     if keywords:
