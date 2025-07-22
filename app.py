@@ -1,8 +1,7 @@
-# Version 2.2.0:
-# - Added a confirmation dialog before sending a post to WordPress to prevent accidents.
-# - Made the GPT output parser more robust to fix the 'Could not find Title' bug.
+# Version 2.3.0:
+# - Implemented logic to disable the 'Generate' button during processing to prevent multiple clicks.
 # Previous versions:
-# - Version 2.1.0: Added a "Send to WordPress as Draft" button.
+# - Version 2.2.0: Added a confirmation dialog for WordPress and improved the parser.
 
 """
 Module: app.py
@@ -31,34 +30,28 @@ def parse_gpt_output(text):
     Parses the structured GPT output string into a dictionary of sections.
     This version is more robust to handle missing colons and extra whitespace.
     """
-    if not text:
-        return {}
-        
-    # Define sections without the colon for more flexible matching
+    if not text: return {}
     sections = [
         "Title", "Context & Research", "Important keywords", "Writing Reminders",
         "1st Draft", "Final Draft checklist"
     ]
-    
-    # Create a regex pattern that looks for the section headers, case-insensitively
     pattern = re.compile(r'^\s*(' + '|'.join(re.escape(s) for s in sections) + r')\s*:', re.IGNORECASE | re.MULTILINE)
-    
-    # Split the text by these headers
     parts = pattern.split(text)
-    
-    if len(parts) < 2:
-        return {"Full Response": text} # Fallback if no headers are found
-
+    if len(parts) < 2: return {"Full Response": text}
     parsed_data = {}
-    # The first part is anything before the first header, which we ignore
-    # Then, we iterate through header-content pairs
     for i in range(1, len(parts), 2):
-        header = parts[i].strip() # This is the captured header, e.g., "Title"
+        header = parts[i].strip()
         content = parts[i+1].strip()
         parsed_data[header] = content
-        
     return parsed_data
 
+# --- NEW: Callback function to start the processing ---
+def start_processing():
+    """Sets the processing flag to True and clears old data."""
+    st.session_state.processing = True
+    st.session_state.confirm_wordpress_send = False # Also reset WP confirmation
+    if 'generated_package' in st.session_state: del st.session_state['generated_package']
+    if 'parsed_package' in st.session_state: del st.session_state['parsed_package']
 
 def main():
     """
@@ -70,9 +63,11 @@ def main():
         layout="wide"
     )
 
-    # Initialize session state for the confirmation dialog
+    # Initialize session state variables
     if 'confirm_wordpress_send' not in st.session_state:
         st.session_state.confirm_wordpress_send = False
+    if 'processing' not in st.session_state:
+        st.session_state.processing = False
 
     st.title("🪴 Shadee Care Writer's Assistant")
     st.markdown("This tool helps you brainstorm and create draft articles for the Shadee Care blog.")
@@ -96,28 +91,32 @@ def main():
     use_trending_keywords = st.checkbox(
         "Include trending keywords for SEO", 
         value=True,
-        help="If checked, the assistant will scan recent trends from Google, Reddit, etc., and use them to optimize the article."
+        help="If checked, the assistant will scan recent trends from Google, Reddit, etc., to optimize the article."
     )
     
     add_vertical_space(2)
 
-    if st.button("Generate & Save Writer's Pack", type="primary"):
-        # Reset confirmation state on new generation
-        st.session_state.confirm_wordpress_send = False
-        if not topic:
-            st.warning("Please enter a topic to generate content.")
-        else:
-            if 'generated_package' in st.session_state: del st.session_state['generated_package']
-            if 'parsed_package' in st.session_state: del st.session_state['parsed_package']
-            
-            keywords_for_generation = []
-            package_content = None
-            
-            spinner_message = "✍️ Crafting your writer's pack..."
-            if use_trending_keywords: spinner_message = "✍️ Crafting with SEO trends..."
+    # The button now uses a callback and is disabled based on the 'processing' state
+    st.button(
+        "Generate & Save Writer's Pack",
+        type="primary",
+        on_click=start_processing,
+        disabled=st.session_state.processing
+    )
 
-            with st.spinner(spinner_message):
-                try:
+    # The main logic now runs if the 'processing' state is True
+    if st.session_state.processing:
+        try:
+            if not topic:
+                st.warning("Please enter a topic to generate content.")
+            else:
+                keywords_for_generation = []
+                package_content = None
+                
+                spinner_message = "✍️ Crafting your writer's pack..."
+                if use_trending_keywords: spinner_message = "✍️ Crafting with SEO trends..."
+
+                with st.spinner(spinner_message):
                     if use_trending_keywords:
                         fetched_keywords = get_trending_keywords()
                         if fetched_keywords:
@@ -131,29 +130,31 @@ def main():
                     
                     package_content = generate_article_package(
                         topic, structure_choice, keywords=keywords_for_generation)
-                except Exception as e:
-                    st.error("An error occurred during content generation.")
-                    st.exception(e)
-            
-            if package_content:
-                parsed_package = parse_gpt_output(package_content)
-                st.session_state['generated_package'] = package_content
-                st.session_state['parsed_package'] = parsed_package
-                st.session_state['topic'] = topic
-                st.session_state['structure_choice'] = structure_choice
+                
+                if package_content:
+                    parsed_package = parse_gpt_output(package_content)
+                    st.session_state['generated_package'] = package_content
+                    st.session_state['parsed_package'] = parsed_package
+                    st.session_state['topic'] = topic
+                    st.session_state['structure_choice'] = structure_choice
 
-                with st.spinner("💾 Saving to Google Sheets..."):
-                    sheet = connect_to_sheet()
-                    if sheet:
-                        success = write_to_sheet(
-                            sheet, topic, structure_choice, 
-                            keywords_for_generation, package_content)
-                        if success: st.success("Pack saved successfully to Google Sheets!")
-                        else: st.warning("Pack generated, but failed to save to Google Sheets.")
-                    else:
-                        st.warning("Pack generated, but could not connect to Google Sheets.")
-            else:
-                st.error("Failed to generate content. Please check your API key or try again.")
+                    with st.spinner("💾 Saving to Google Sheets..."):
+                        sheet = connect_to_sheet()
+                        if sheet:
+                            success = write_to_sheet(
+                                sheet, topic, structure_choice, 
+                                keywords_for_generation, package_content)
+                            if success: st.success("Pack saved successfully to Google Sheets!")
+                            else: st.warning("Pack generated, but failed to save to Google Sheets.")
+                        else:
+                            st.warning("Pack generated, but could not connect to Google Sheets.")
+                else:
+                    st.error("Failed to generate content. Please check your API key or try again.")
+        
+        finally:
+            # This block ensures the state is reset, re-enabling the button
+            st.session_state.processing = False
+            st.rerun() # Forces an immediate re-run to update the button's state on screen
 
     # --- Step 2: Review Your Writer's Pack ---
     if 'generated_package' in st.session_state:
@@ -180,7 +181,6 @@ def main():
             st.divider()
             st.subheader("Publishing Options")
 
-            # If the confirmation state is active, show the warning and Yes/No buttons
             if st.session_state.get('confirm_wordpress_send'):
                 st.warning("""
                 This will send the generated 1st draft directly to the Shadee.Care website. 
@@ -199,16 +199,18 @@ def main():
                         else:
                             with st.spinner("Sending content to WordPress..."):
                                 create_wordpress_draft(post_title, post_content)
-                        st.session_state.confirm_wordpress_send = False # Reset state
+                        st.session_state.confirm_wordpress_send = False
+                        st.rerun()
                 with col2:
                     if st.button("❌ No, cancel"):
-                        st.session_state.confirm_wordpress_send = False # Reset state
+                        st.session_state.confirm_wordpress_send = False
+                        st.rerun()
             
-            # Otherwise, show the initial "Send" button
             else:
                 if st.button("🚀 Send to WordPress as Draft"):
-                    st.session_state.confirm_wordpress_send = True # Set state to show confirmation
-                    st.rerun() # Rerun to show the confirmation dialog immediately
+                    st.session_state.confirm_wordpress_send = True
+                    st.rerun()
+
 
 if __name__ == "__main__":
     main()
