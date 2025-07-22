@@ -1,5 +1,8 @@
-# Version 1.0.0:
-# - Initial implementation for creating draft posts in WordPress.
+# Version 1.1.0:
+# - Updated to handle 202 "Accepted" as a valid success status code from WordPress.
+# - Improved error parsing for non-JSON responses (like firewall HTML).
+# Previous versions:
+# - Version 1.0.0: Initial implementation for creating draft posts.
 
 """
 Module: wordpress_helper.py
@@ -29,33 +32,38 @@ def create_wordpress_draft(title, content):
         wp_pass = st.secrets["wordpress"]["WP_APP_PASSWORD"]
 
         # --- Prepare the Request ---
-        # The endpoint for creating posts
         api_url = f"{wp_url}/wp-json/wp/v2/posts"
-        
-        # Prepare the authentication using the Application Password
         credentials = f"{wp_user}:{wp_pass}"
         token = base64.b64encode(credentials.encode())
         headers = {'Authorization': f'Basic {token.decode("utf-8")}'}
         
-        # Prepare the post data
         post_data = {
             'title': title,
             'content': content,
-            'status': 'draft'  # This is crucial for creating a draft
+            'status': 'draft'
         }
 
         # --- Make the API Call ---
         response = requests.post(api_url, headers=headers, json=post_data)
 
         # --- Check the Response ---
-        if response.status_code == 201: # 201 means "Created" successfully
-            post_id = response.json().get('id')
-            post_link = response.json().get('link')
-            st.success(f"Successfully created draft post: '{title}' in WordPress!")
-            st.markdown(f"**[Edit your new draft here]({post_link})**")
-            return True
+        # Check for success codes 201 (Created) or 202 (Accepted)
+        if response.status_code in [201, 202]:
+            try:
+                # Try to parse the expected JSON response
+                response_data = response.json()
+                post_link = response_data.get('link')
+                st.success(f"Successfully created draft post: '{title}' in WordPress!")
+                if post_link:
+                    st.markdown(f"**[Edit your new draft here]({post_link})**")
+                return True
+            except requests.exceptions.JSONDecodeError:
+                # This happens if we get a success code but the body is HTML (like a firewall page)
+                st.error("WordPress accepted the request, but returned an unexpected response (likely a firewall or CAPTCHA page). Please check your hosting's IP whitelist settings.")
+                st.code(response.text, language="html")
+                return False
         else:
-            # Provide a detailed error message if it fails
+            # Handle other, explicit error codes
             st.error(f"Failed to create WordPress draft. Status Code: {response.status_code}")
             try:
                 st.error(f"Response: {response.json()}")
