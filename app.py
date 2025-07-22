@@ -1,7 +1,8 @@
-# Version 2.0.1:
-# - Streamlined UI by removing the 'Step 2: Generate Article' header and renumbering steps.
+# Version 2.1.0:
+# - Added a "Send to WordPress as Draft" button and corresponding logic.
+# - Updated the parser to look for the new 'Title:' field from the GPT output.
 # Previous versions:
-# - Version 2.0.0: Writes the specific keywords used for generation to G-Sheets.
+# - Version 2.0.1: Streamlined UI by removing redundant headers.
 
 """
 Module: app.py
@@ -18,6 +19,8 @@ import re
 from utils.gpt_helper import generate_article_package, STRUCTURE_DETAILS
 from utils.g_sheets import connect_to_sheet, write_to_sheet
 from utils.trend_fetcher import get_trending_keywords
+# NEW: Import the WordPress helper
+from utils.wordpress_helper import create_wordpress_draft
 from streamlit_extras.add_vertical_space import add_vertical_space
 from st_copy_to_clipboard import st_copy_to_clipboard
 
@@ -30,8 +33,9 @@ def parse_gpt_output(text):
     """
     if not text:
         return {}
+    # NEW: Add "Title:" to the list of sections to parse
     sections = [
-        "Context & Research:", "Important keywords:", "Writing Reminders:",
+        "Title:", "Context & Research:", "Important keywords:", "Writing Reminders:",
         "1st Draft:", "Final Draft checklist:"
     ]
     parsed_data = {}
@@ -82,7 +86,6 @@ def main():
     
     add_vertical_space(2)
 
-    # The "Generate" button now appears directly after the options.
     if st.button("Generate & Save Writer's Pack", type="primary"):
         if not topic:
             st.warning("Please enter a topic to generate content.")
@@ -103,7 +106,6 @@ def main():
 
             with st.spinner(spinner_message):
                 try:
-                    # Determine which keywords to use for generation
                     if use_trending_keywords:
                         fetched_keywords = get_trending_keywords()
                         if fetched_keywords:
@@ -115,7 +117,6 @@ def main():
                     else:
                         keywords_for_generation = GENERIC_KEYWORDS
                     
-                    # Generate the article using the determined keyword list
                     package_content = generate_article_package(
                         topic, 
                         structure_choice, 
@@ -151,24 +152,41 @@ def main():
             else:
                 st.error("Failed to generate content. Please check your API key or try again.")
 
-    # --- Step 2: Review Your Writer's Pack (Renumbered from Step 3) ---
+    # --- Step 2: Review Your Writer's Pack ---
     if 'generated_package' in st.session_state:
         st.header("Step 2: Review Your Writer's Pack")
         full_package = st.session_state['generated_package']
         parsed_package = st.session_state['parsed_package']
         with st.container(border=True):
             for header, content in parsed_package.items():
-                if "Context" in header: icon = "🔍"
+                icon = "📄"
+                if "Title" in header: icon = "🏷️"
+                elif "Context" in header: icon = "🔍"
                 elif "keywords" in header: icon = "🔑"
                 elif "Reminders" in header: icon = "📝"
                 elif "1st Draft" in header: icon = "✍️"
                 elif "checklist" in header: icon = "✅"
-                else: icon = "📄"
                 
                 with st.expander(f"{icon} {header}", expanded=True):
                     st.markdown(content)
+            
             add_vertical_space(1)
+            
             st_copy_to_clipboard(full_package, "Click here to copy the full output")
+
+            # --- NEW: WORDPRESS BUTTON SECTION ---
+            st.divider()
+            st.subheader("Publishing Options")
+            
+            if st.button("🚀 Send to WordPress as Draft"):
+                post_title = parsed_package.get("Title:", "").strip()
+                post_content = parsed_package.get("1st Draft:", "").strip()
+
+                if not post_title or not post_content:
+                    st.warning("Could not find a valid Title or 1st Draft in the generated content to send.")
+                else:
+                    with st.spinner("Sending content to WordPress..."):
+                        create_wordpress_draft(post_title, post_content)
 
 
 if __name__ == "__main__":
