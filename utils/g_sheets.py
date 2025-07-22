@@ -1,8 +1,9 @@
-# Version 2.1.0:
-# - Added a 'username' parameter to log the user in a new column.
-# - Updated the expected header to include the 'Username' column.
+# Version 2.2.0:
+# - Added a 'Sources' column to the output sheet (Column F).
+# - Moved 'Username' to Column G.
+# - Updated the write_to_sheet function to handle the new structure.
 # Previous versions:
-# - Version 2.0.0: Refactored sheet creation logic.
+# - Version 2.1.0: Refactored sheet creation logic to be more robust.
 
 """
 Module: g_sheets.py
@@ -21,8 +22,8 @@ from google.oauth2.service_account import Credentials
 OUTPUT_SPREADSHEET_NAME = "Shadee writer assistant"
 OUTPUT_WORKSHEET_NAME = "Sheet1"
 CACHE_WORKSHEET_NAME = "Keyword Cache"
-# NEW: Added "Username" as the 6th column (Column F)
-OUTPUT_HEADER = ["Timestamp", "Topic", "Structure Choice", "Keywords", "Generated Output", "Username"]
+# NEW: Header updated to include "Sources" and move "Username"
+OUTPUT_HEADER = ["Timestamp", "Topic", "Structure Choice", "Keywords", "Generated Output", "Sources", "Username"]
 CACHE_HEADER = ["Cache_Date", "Keywords"]
 
 # --- Helper to create worksheet and/or header ---
@@ -60,18 +61,20 @@ def connect_to_sheet():
         st.error(f"Error connecting to output sheet: {e}")
         return None
 
-# NEW: Function signature updated to accept a 'username' argument
-def write_to_sheet(sheet, topic, structure, keywords_used, full_content, username):
+# NEW: Function signature updated to accept a 'sources_list' argument
+def write_to_sheet(sheet, topic, structure, keywords_used, full_content, sources_list, username):
     """
-    Writes the generated article pack and the user who generated it to the sheet.
+    Writes the generated article pack, sources, and user to the sheet.
     """
     try:
         singapore_time = datetime.now(ZoneInfo("Asia/Singapore"))
         timestamp = singapore_time.strftime("%Y-%m-%d %H:%M:%S")
         keywords_string = ", ".join(keywords_used)
+        # Convert the list of source URLs into a single comma-separated string
+        sources_string = ", ".join(sources_list)
         
-        # NEW: Added 'username' to the row being inserted
-        row_to_insert = [timestamp, topic, structure, keywords_string, full_content, username]
+        # NEW: Updated row structure to match the new 7-column header
+        row_to_insert = [timestamp, topic, structure, keywords_string, full_content, sources_string, username]
         
         sheet.append_row(row_to_insert)
         return True
