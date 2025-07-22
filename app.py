@@ -1,8 +1,8 @@
-# Version 3.0.2:
-# - Reverted topic input placeholder text to the preferred, more descriptive version.
-# - Reverted the WordPress confirmation warning to the preferred, more detailed version.
+# Version 3.1.0:
+# - Implemented role-based access for the "Send to WordPress" button.
+# - The button is now only visible to users listed in secrets.toml.
 # Previous versions:
-# - Version 3.0.1: Fixed a critical IndentationError in the results display loop.
+# - Version 3.0.2: Reverted placeholder text and warning messages.
 
 """
 Module: app.py
@@ -72,7 +72,6 @@ def run_main_app():
     st.markdown("This tool helps you brainstorm and create draft articles for the Shadee.Care blog.")
     
     st.header("Step 1: Define Your Article")
-    # REVERTED: Restored the original, more descriptive placeholder text.
     topic = st.text_input(
         "Enter the article topic:",
         placeholder="e.g., 'Overcoming the fear of failure' or a celebrity profile like 'Zendaya's journey with anxiety'"
@@ -139,40 +138,48 @@ def run_main_app():
             add_vertical_space(1)
             st_copy_to_clipboard(full_package, "Click here to copy the full output")
 
-            st.divider()
-            st.subheader("Publishing Options")
-            
-            wp_placeholder = st.empty()
-            if st.session_state.get('confirm_wordpress_send'):
-                with wp_placeholder.container():
-                    # REVERTED: Restored the original, more detailed warning message.
-                    st.warning("""
-                    This will send the generated 1st draft directly to the Shadee.Care website. 
-                    You are highly encouraged to do further edits and refinement to the draft.
-                    Please do not send unnecessary drafts to the website as it'll require additional effort to manually delete them.
-                    
-                    **Are you sure you want to proceed?**
-                    """)
-                    col1, col2, _ = st.columns([1, 1, 5])
-                    with col1:
-                        if st.button("✅ Yes, proceed"):
-                            post_title = parsed_package.get("Title", "").strip()
-                            post_content = parsed_package.get("1st Draft", "").strip()
-                            if not post_title or not post_content:
-                                st.error("Action failed: Could not find Title or 1st Draft.")
-                            else:
-                                with st.spinner("Sending to WordPress..."):
-                                    create_wordpress_draft(post_title, post_content)
-                            st.session_state.confirm_wordpress_send = False
-                    with col2:
-                        if st.button("❌ No, cancel"):
-                            st.session_state.confirm_wordpress_send = False
+            # --- NEW: ROLE-BASED UI FOR WORDPRESS PUBLISHING ---
+            try:
+                # Safely get the list of allowed users from secrets
+                wordpress_allowed_users = st.secrets.get("authentication", {}).get("WORDPRESS_USERS", [])
+            except Exception:
+                wordpress_allowed_users = []
+
+            # Only show the "Publishing Options" section if the current user is in the list
+            if st.session_state.username in wordpress_allowed_users:
+                st.divider()
+                st.subheader("Publishing Options")
+                
+                wp_placeholder = st.empty()
+                if st.session_state.get('confirm_wordpress_send'):
+                    with wp_placeholder.container():
+                        st.warning("""
+                        This will send the generated 1st draft directly to the Shadee.Care website. 
+                        You are highly encouraged to do further edits and refinement to the draft.
+                        Please do not send unnecessary drafts to the website as it'll require additional effort to manually delete them.
+                        
+                        **Are you sure you want to proceed?**
+                        """)
+                        col1, col2, _ = st.columns([1, 1, 5])
+                        with col1:
+                            if st.button("✅ Yes, proceed"):
+                                post_title = parsed_package.get("Title", "").strip()
+                                post_content = parsed_package.get("1st Draft", "").strip()
+                                if not post_title or not post_content:
+                                    st.error("Action failed: Could not find Title or 1st Draft.")
+                                else:
+                                    with st.spinner("Sending to WordPress..."):
+                                        create_wordpress_draft(post_title, post_content)
+                                st.session_state.confirm_wordpress_send = False
+                        with col2:
+                            if st.button("❌ No, cancel"):
+                                st.session_state.confirm_wordpress_send = False
+                                st.rerun()
+                else:
+                    with wp_placeholder.container():
+                        if st.button("🚀 Send to WordPress as Draft"):
+                            st.session_state.confirm_wordpress_send = True
                             st.rerun()
-            else:
-                with wp_placeholder.container():
-                    if st.button("🚀 Send to WordPress as Draft"):
-                        st.session_state.confirm_wordpress_send = True
-                        st.rerun()
 
 # --- Login Screen Logic ---
 def login_screen():
