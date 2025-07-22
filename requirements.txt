@@ -7,3 +7,5 @@ streamlit-extras
 google-auth-oauthlib
 requests
 google-generativeai
+google-api-python-client
+trafilatura
