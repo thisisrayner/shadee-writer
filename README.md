@@ -53,9 +53,7 @@ pip install -r requirements.txt
 
     
 
-IGNORE_WHEN_COPYING_START
-Use code with caution.
-IGNORE_WHEN_COPYING_END
+
 2. Configure Credentials (.streamlit/secrets.toml)
 
 Create a .streamlit/secrets.toml file and fill it with your credentials.
@@ -100,10 +98,6 @@ WHITELISTED_USERNAMES = [ "user1", "user2", "rayner", "sandra", "dionne" ]
 WORDPRESS_USERS = [ "rayner", "sandra", "dionne" ]
 
     
-
-IGNORE_WHEN_COPYING_START
-Use code with caution. Toml
-IGNORE_WHEN_COPYING_END
 3. Google Sheets & WordPress Setup
 
     WordPress: Generate an Application Password from your user profile in the WordPress admin dashboard.
