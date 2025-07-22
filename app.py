@@ -1,9 +1,7 @@
-# Version 3.0.0:
-# - Implemented a login screen with whitelisted usernames and a common password.
-# - Logged-in username is now recorded in the output Google Sheet.
-# - Refactored the app into login and main app functions.
+# Version 3.0.1:
+# - Fixed a critical IndentationError in the results display loop.
 # Previous versions:
-# - Version 2.3.4: Updated branding to Shadee.Care.
+# - Version 3.0.0: Implemented a login screen and username logging.
 
 """
 Module: app.py
@@ -109,7 +107,6 @@ def run_main_app():
                     with st.spinner("💾 Saving to Google Sheets..."):
                         sheet = connect_to_sheet()
                         if sheet:
-                            # Pass the logged-in username to the sheet writer
                             write_to_sheet(sheet, topic, structure_choice, keywords_for_generation, package_content, st.session_state.username)
                             st.success("Pack saved successfully to Google Sheets!")
                 else:
@@ -123,15 +120,48 @@ def run_main_app():
         full_package = st.session_state.generated_package
         parsed_package = st.session_state.parsed_package
         with st.container(border=True):
+            # --- THIS BLOCK IS CORRECTED ---
             for header, content in parsed_package.items():
-                # ... (Display expanders logic is unchanged) ...
+                icon = "📄"
+                if "Title" in header: icon = "🏷️"
+                elif "Context" in header: icon = "🔍"
+                elif "keywords" in header: icon = "🔑"
+                elif "Reminders" in header: icon = "📝"
+                elif "1st Draft" in header: icon = "✍️"
+                elif "checklist" in header: icon = "✅"
+                with st.expander(f"{icon} {header}", expanded=True):
+                    st.markdown(content)
             
             add_vertical_space(1)
             st_copy_to_clipboard(full_package, "Click here to copy the full output")
 
             st.divider()
             st.subheader("Publishing Options")
-            # ... (WordPress confirmation logic is unchanged) ...
+            # --- WordPress confirmation logic ---
+            wp_placeholder = st.empty()
+            if st.session_state.get('confirm_wordpress_send'):
+                with wp_placeholder.container():
+                    st.warning("Are you sure you want to proceed?")
+                    col1, col2, _ = st.columns([1, 1, 5])
+                    with col1:
+                        if st.button("✅ Yes, proceed"):
+                            post_title = parsed_package.get("Title", "").strip()
+                            post_content = parsed_package.get("1st Draft", "").strip()
+                            if not post_title or not post_content:
+                                st.error("Action failed: Could not find Title or 1st Draft.")
+                            else:
+                                with st.spinner("Sending to WordPress..."):
+                                    create_wordpress_draft(post_title, post_content)
+                            st.session_state.confirm_wordpress_send = False
+                    with col2:
+                        if st.button("❌ No, cancel"):
+                            st.session_state.confirm_wordpress_send = False
+                            st.rerun()
+            else:
+                with wp_placeholder.container():
+                    if st.button("🚀 Send to WordPress as Draft"):
+                        st.session_state.confirm_wordpress_send = True
+                        st.rerun()
 
 # --- Login Screen Logic ---
 def login_screen():
@@ -145,7 +175,6 @@ def login_screen():
 
         if submitted:
             try:
-                # Get credentials from secrets
                 expected_password = st.secrets["authentication"]["COMMON_PASSWORD"]
                 whitelisted_users = st.secrets["authentication"]["WHITELISTED_USERNAMES"]
 
@@ -165,7 +194,6 @@ def main():
     """The main function that routes to login or the app."""
     st.set_page_config(page_title="Shadee.Care Writer's Assistant", page_icon="🪴", layout="wide")
 
-    # Initialize session state variables
     if 'authenticated' not in st.session_state:
         st.session_state.authenticated = False
     if 'username' not in st.session_state:
