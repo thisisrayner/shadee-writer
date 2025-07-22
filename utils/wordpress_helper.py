@@ -49,16 +49,23 @@ def create_wordpress_draft(title, content):
 
         # --- Check the Response ---
         if response.status_code == 201: # 201 means "Created" successfully
+            post_id = response.json().get('id')
+            post_link = response.json().get('link')
             st.success(f"Successfully created draft post: '{title}' in WordPress!")
+            st.markdown(f"**[Edit your new draft here]({post_link})**")
             return True
         else:
             # Provide a detailed error message if it fails
             st.error(f"Failed to create WordPress draft. Status Code: {response.status_code}")
-            st.error(f"Response: {response.json()}")
+            try:
+                st.error(f"Response: {response.json()}")
+            except Exception:
+                st.error(f"Could not parse error response: {response.text}")
             return False
 
     except KeyError as e:
         st.error(f"Missing WordPress credentials in secrets.toml: {e}")
+        st.info("Please ensure your .streamlit/secrets.toml file contains a [wordpress] section with WP_URL, WP_USERNAME, and WP_APP_PASSWORD.")
         return False
     except Exception as e:
         st.error(f"An unexpected error occurred while sending to WordPress: {e}")
