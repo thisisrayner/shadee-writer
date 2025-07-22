@@ -1,13 +1,12 @@
-# Version 3.0.1:
-# - Corrected a critical typo in the function call to 'write_keyword_cache'.
+# Version 2.1.2:
+# - Resolved the Pandas SettingWithCopyWarning by using .loc for assignments.
 # Previous versions:
-# - Version 3.0.0: Implemented caching logic.
+# - Version 2.1.1: Removed 'Sheet1' from the scan list.
 
 """
 Module: trend_fetcher.py
-Purpose: Implements Stage 1 of the AI pipeline with caching. It first checks for
-         cached keywords for the current day. If none are found, it fetches raw data,
-         uses an LLM to extract keywords, and then writes the result to the cache.
+Purpose: Implements Stage 1 of the AI pipeline. It fetches raw text data from
+         Google Sheets and uses an LLM call to extract a clean list of trending keywords.
 """
 
 # --- Imports ---
@@ -91,13 +90,16 @@ def get_trending_keywords():
                 df[DATE_COLUMN] = pd.to_datetime(df[DATE_COLUMN], errors='coerce')
                 df.dropna(subset=[DATE_COLUMN], inplace=True)
                 
-                recent_df = df[df[DATE_COLUMN] >= thirty_days_ago]
+                recent_df = df[df[DATE_COLUMN] >= thirty_days_ago].copy() # Use .copy() to signal intent
                 if recent_df.empty: continue
 
                 if sheet_name == "Google Trends":
                     interest_col = config.get("interest_col")
                     if interest_col in recent_df.columns:
-                        recent_df[interest_col] = pd.to_numeric(recent_df[interest_col], errors='coerce')
+                        # --- THIS LINE IS CORRECTED ---
+                        # Use .loc to safely modify the DataFrame slice
+                        recent_df.loc[:, interest_col] = pd.to_numeric(recent_df[interest_col], errors='coerce')
+                        
                         high_interest_df = recent_df[recent_df[interest_col] > 50]
                         all_raw_text.extend(high_interest_df[keyword_col].tolist())
                     else:
@@ -119,7 +121,6 @@ def get_trending_keywords():
         
         if final_keywords:
             st.success("New keywords generated. Writing to cache for future use today.")
-            # --- TYPO CORRECTED HERE ---
             write_keyword_cache(final_keywords)
         
         return sorted(final_keywords)
