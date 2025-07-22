@@ -1,8 +1,8 @@
-# Version 3.2.1:
-# - Added display of Gemini research source URLs in the UI.
-# - Logged the source URLs to the output Google Sheet in a new 'Sources' column.
+# Version 3.1.4:
+# - Added a post-processing step to replace any remaining em dashes (—) with commas
+#   to ensure a more human-like final output.
 # Previous versions:
-# - Version 3.2.0: Integrated two-stage Gemini+GPT pipeline.
+# - Version 3.1.3: Added cleaning logic for AI output markdown.
 
 """
 Module: app.py
@@ -120,11 +120,19 @@ def run_main_app():
                 
                 if package_content:
                     parsed_package = parse_gpt_output(package_content)
+                    
+                    # --- NEW & IMPROVED: Clean the parsed content ---
                     for key, value in parsed_package.items():
-                        parsed_package[key] = value.strip().strip('*').strip()
+                        # Chain of cleaning operations:
+                        # 1. Strip leading/trailing whitespace
+                        # 2. Strip leading/trailing asterisks
+                        # 3. Replace any em dashes with a comma
+                        # 4. Strip whitespace again just in case
+                        cleaned_value = value.strip().strip('*').replace('—', ',').strip()
+                        parsed_package[key] = cleaned_value
                     
                     st.session_state.generated_package = package_content
-                    st.session_state.parsed_package = parsed_package
+                    st.session_state.parsed_package = parsed_package # Store the CLEANED version
                     st.session_state.topic = topic
                     st.session_state.structure_choice = structure_choice
 
