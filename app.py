@@ -1,8 +1,8 @@
-# Version 3.1.3:
-# - Added a cleaning step to strip unwanted markdown characters (like **) from the
-#   parsed AI output before displaying it or sending it to WordPress.
+# Version 3.2.0:
+# - Integrated a two-stage pipeline: Gemini for web research, then GPT for writing.
+# - The app now performs live research before generating the writer's pack.
 # Previous versions:
-# - Version 3.1.2: Renamed "Let GPT Decide for Me" to "Let AI decide".
+# - Version 3.1.3: Added cleaning logic for AI output.
 
 """
 Module: app.py
@@ -18,6 +18,7 @@ from utils.gpt_helper import generate_article_package, STRUCTURE_DETAILS
 from utils.g_sheets import connect_to_sheet, write_to_sheet
 from utils.trend_fetcher import get_trending_keywords
 from utils.wordpress_helper import create_wordpress_draft
+from utils.gemini_helper import perform_web_research # NEW IMPORT
 from streamlit_extras.add_vertical_space import add_vertical_space
 from st_copy_to_clipboard import st_copy_to_clipboard
 
@@ -90,27 +91,44 @@ def run_main_app():
                 st.warning("Please enter a topic to generate content.")
             else:
                 keywords_for_generation = GENERIC_KEYWORDS
+                research_data = None
+                
+                # --- STAGE 1: WEB RESEARCH WITH GEMINI ---
+                with st.spinner("🔬 Performing live web research with Gemini..."):
+                    research_data = perform_web_research(topic)
+                
+                if not research_data or not research_data.get("summary"):
+                    st.warning("Web research failed or returned no content. The article will be based on the AI's existing knowledge.")
+                    research_context = "No live web research was provided for this topic."
+                else:
+                    st.success(f"Web research complete! Found {len(research_data.get('sources', []))} relevant sources.")
+                    research_context = research_data['summary']
+
+                # --- STAGE 2: KEYWORD FETCHING & ARTICLE GENERATION ---
+                spinner_message = "✍️ Crafting your writer's pack using the research..."
                 if use_trending_keywords:
                     fetched_keywords = get_trending_keywords()
                     if fetched_keywords:
                         keywords_for_generation = fetched_keywords
-                        st.success(f"Used {len(fetched_keywords)} trending keywords.")
+                        st.success(f"Successfully incorporated {len(fetched_keywords)} trending keywords.")
                     else:
                         st.info("No recent trends found. Using generic keywords.")
                 
-                with st.spinner("✍️ Crafting your writer's pack..."):
-                    package_content = generate_article_package(topic, structure_choice, keywords=keywords_for_generation)
+                with st.spinner(spinner_message):
+                    package_content = generate_article_package(
+                        topic, 
+                        structure_choice, 
+                        keywords=keywords_for_generation,
+                        research_context=research_context
+                    )
                 
                 if package_content:
                     parsed_package = parse_gpt_output(package_content)
-                    
-                    # --- NEW: Clean the parsed content to remove unwanted markdown ---
                     for key, value in parsed_package.items():
-                        # This strips leading/trailing whitespace, then asterisks, then whitespace again.
                         parsed_package[key] = value.strip().strip('*').strip()
                     
                     st.session_state.generated_package = package_content
-                    st.session_state.parsed_package = parsed_package # Store the CLEANED version
+                    st.session_state.parsed_package = parsed_package
                     st.session_state.topic = topic
                     st.session_state.structure_choice = structure_choice
 
