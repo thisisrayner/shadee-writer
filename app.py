@@ -1,13 +1,11 @@
-# Version 2.3.3:
-# - Replaced the brittle regex parser with a robust line-by-line parser to fix the 'Could not find Title' bug.
-# - Restored the longer, more detailed WordPress confirmation warning message.
-# - Restored the original, more descriptive placeholder text for the topic input field.
+# Version 2.3.4:
+# - Updated all instances of 'Shadee Care' to 'Shadee.Care' for brand consistency in the UI.
 # Previous versions:
-# - Version 2.3.2: Corrected the WordPress confirmation UI flow.
+# - Version 2.3.3: Implemented a robust line-by-line parser to fix title extraction bug.
 
 """
 Module: app.py
-Purpose: The main Streamlit application file for the Shadee Care Writer's Assistant.
+Purpose: The main Streamlit application file for the Shadee.Care Writer's Assistant.
 - Renders the user interface.
 - Handles user input for topic and structure.
 - Orchestrates the calls to helper modules for content generation and saving.
@@ -34,45 +32,29 @@ def parse_gpt_output(text):
     """
     if not text:
         return {}
-
-    # Canonical headers that we expect to find.
     sections = {
         "Title": None, "Context & Research": None, "Important keywords": None,
         "Writing Reminders": None, "1st Draft": None, "Final Draft checklist": None
     }
-    
     parsed_data = {}
     current_section_key = None
-    
     lines = text.split('\n')
-    
     for line in lines:
         found_new_section = False
-        # Check if the line is a new section header
         for section_name in sections.keys():
-            # Match if line starts with the section name, case-insensitively, ignoring formatting
             if re.match(rf"^\s*[\#\*\s]*{re.escape(section_name)}\s*:?", line, re.IGNORECASE):
                 current_section_key = section_name
-                # Initialize the section content, capturing any text on the same line after the header
-                # For example, "Title: My Awesome Title"
                 header_pattern = re.compile(rf"^\s*[\#\*\s]*{re.escape(section_name)}\s*:?\s*", re.IGNORECASE)
                 initial_content = header_pattern.sub("", line).strip()
                 parsed_data[current_section_key] = [initial_content] if initial_content else []
                 found_new_section = True
-                break # Move to the next line once a header is found
-        
-        # If it's not a new header but we are inside a section, append the line
+                break
         if not found_new_section and current_section_key:
             parsed_data[current_section_key].append(line)
-            
-    # Join the lines for each section back into a single string
     for key, value_lines in parsed_data.items():
         parsed_data[key] = "\n".join(value_lines).strip()
-        
-    # If parsing fails for some reason, return the full text as a fallback
     if not parsed_data:
         return {"Full Response": text}
-        
     return parsed_data
 
 
@@ -81,7 +63,7 @@ def main():
     Main function to run the Streamlit application.
     """
     st.set_page_config(
-        page_title="Shadee Care Writer's Assistant",
+        page_title="Shadee.Care Writer's Assistant", # CHANGED HERE
         page_icon="🪴",
         layout="wide"
     )
@@ -91,11 +73,10 @@ def main():
     if 'processing' not in st.session_state:
         st.session_state.processing = False
 
-    st.title("🪴 Shadee Care Writer's Assistant")
-    st.markdown("This tool helps you brainstorm and create draft articles for the Shadee Care blog.")
+    st.title("🪴 Shadee.Care Writer's Assistant") # CHANGED HERE
+    st.markdown("This tool helps you brainstorm and create draft articles for the Shadee.Care blog.") # CHANGED HERE
 
     st.header("Step 1: Define Your Article")
-    # RESTORED: Original placeholder text
     topic = st.text_input(
         "Enter the article topic:",
         placeholder="e.g., 'Overcoming the fear of failure' or a celebrity profile like 'Zendaya's journey with anxiety'"
@@ -190,7 +171,6 @@ def main():
 
             if st.session_state.get('confirm_wordpress_send'):
                 with wp_placeholder.container():
-                    # RESTORED: Longer, more detailed warning message
                     st.warning("""
                     This will send the generated 1st draft directly to the Shadee.Care website. 
                     You are highly encouraged to do further edits and refinement to the draft.
