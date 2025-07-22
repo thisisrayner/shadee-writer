@@ -6,3 +6,4 @@ st-copy-to-clipboard
 streamlit-extras
 google-auth-oauthlib
 requests
+google-generativeai
