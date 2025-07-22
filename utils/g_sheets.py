@@ -1,8 +1,8 @@
 # Version 2.1.0:
-# - Major refactor to make sheet and header creation logic more robust.
-# - Separated connection logic for output and cache sheets for clarity.
+# - Added a 'username' parameter to log the user in a new column.
+# - Updated the expected header to include the 'Username' column.
 # Previous versions:
-# - Version 2.0.0: Added initial functions for the "Keyword Cache" sheet.
+# - Version 2.0.0: Refactored sheet creation logic.
 
 """
 Module: g_sheets.py
@@ -21,7 +21,8 @@ from google.oauth2.service_account import Credentials
 OUTPUT_SPREADSHEET_NAME = "Shadee writer assistant"
 OUTPUT_WORKSHEET_NAME = "Sheet1"
 CACHE_WORKSHEET_NAME = "Keyword Cache"
-OUTPUT_HEADER = ["Timestamp", "Topic", "Structure Choice", "Keywords", "Generated Output"]
+# NEW: Added "Username" as the 6th column (Column F)
+OUTPUT_HEADER = ["Timestamp", "Topic", "Structure Choice", "Keywords", "Generated Output", "Username"]
 CACHE_HEADER = ["Cache_Date", "Keywords"]
 
 # --- Helper to create worksheet and/or header ---
@@ -35,20 +36,18 @@ def _ensure_worksheet_and_header(spreadsheet, worksheet_name, header):
     except gspread.exceptions.WorksheetNotFound:
         worksheet = spreadsheet.add_worksheet(title=worksheet_name, rows=1, cols=len(header))
     
-    # Now, check the header of the (potentially new) sheet
     try:
         current_header = worksheet.row_values(1)
         if current_header != header:
-            worksheet.insert_row(header, 1) # Insert header if it's incorrect
+            worksheet.insert_row(header, 1)
     except gspread.exceptions.APIError as e:
-        # This handles the case where the sheet exists but is completely empty
         if "exceeds grid limits" in str(e):
-            worksheet.append_row(header) # Add header to empty sheet
+            worksheet.append_row(header)
         else:
             raise e
     return worksheet
 
-# --- Public Functions ---
+# --- Public Functions for Output Sheet ---
 def connect_to_sheet():
     """Connects to the main output worksheet ('Sheet1')."""
     try:
@@ -61,19 +60,26 @@ def connect_to_sheet():
         st.error(f"Error connecting to output sheet: {e}")
         return None
 
-def write_to_sheet(sheet, topic, structure, keywords_used, full_content):
-    """Writes the generated article pack to the main output sheet."""
+# NEW: Function signature updated to accept a 'username' argument
+def write_to_sheet(sheet, topic, structure, keywords_used, full_content, username):
+    """
+    Writes the generated article pack and the user who generated it to the sheet.
+    """
     try:
         singapore_time = datetime.now(ZoneInfo("Asia/Singapore"))
         timestamp = singapore_time.strftime("%Y-%m-%d %H:%M:%S")
         keywords_string = ", ".join(keywords_used)
-        row_to_insert = [timestamp, topic, structure, keywords_string, full_content]
+        
+        # NEW: Added 'username' to the row being inserted
+        row_to_insert = [timestamp, topic, structure, keywords_string, full_content, username]
+        
         sheet.append_row(row_to_insert)
         return True
     except Exception as e:
         st.error(f"Error writing to Google Sheets: {e}")
         return False
 
+# --- Public Functions for Keyword Cache Sheet ---
 def read_keyword_cache():
     """Reads the keyword cache for today's date."""
     try:
