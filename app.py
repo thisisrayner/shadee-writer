@@ -1,8 +1,8 @@
-# Version 3.1.0:
-# - Implemented role-based access for the "Send to WordPress" button.
-# - The button is now only visible to users listed in secrets.toml.
+# Version 3.1.1:
+# - Corrected the role-based UI logic to ensure the "Publishing Options" section
+#   is completely hidden for non-WordPress users.
 # Previous versions:
-# - Version 3.0.2: Reverted placeholder text and warning messages.
+# - Version 3.1.0: Implemented role-based access for the WordPress button.
 
 """
 Module: app.py
@@ -138,14 +138,13 @@ def run_main_app():
             add_vertical_space(1)
             st_copy_to_clipboard(full_package, "Click here to copy the full output")
 
-            # --- NEW: ROLE-BASED UI FOR WORDPRESS PUBLISHING ---
+            # --- ROLE-BASED UI FOR WORDPRESS (CORRECTED) ---
             try:
-                # Safely get the list of allowed users from secrets
                 wordpress_allowed_users = st.secrets.get("authentication", {}).get("WORDPRESS_USERS", [])
             except Exception:
                 wordpress_allowed_users = []
 
-            # Only show the "Publishing Options" section if the current user is in the list
+            # The entire publishing block is now inside this 'if' statement
             if st.session_state.username in wordpress_allowed_users:
                 st.divider()
                 st.subheader("Publishing Options")
