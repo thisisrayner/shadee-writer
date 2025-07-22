@@ -1,8 +1,8 @@
-# Version 1.2.2:
-# - Corrected the source parsing logic to robustly handle various list formats
-#   (e.g., numbered lists, partial URLs) returned by the Gemini API.
+# Version 1.2.3:
+# - Updated the research prompt to explicitly demand full, specific article URLs
+#   instead of generic root domains.
 # Previous versions:
-# - Version 1.2.1: Added extensive debugging logs.
+# - Version 1.2.2: Corrected the source parsing logic.
 
 """
 Module: gemini_helper.py
@@ -26,6 +26,7 @@ def perform_web_research(topic: str) -> dict | None:
         gemini_api_key = st.secrets["google_gemini"]["API_KEY"]
         genai.configure(api_key=gemini_api_key)
 
+        # --- UPDATED: More explicit prompt for specific URLs ---
         research_prompt = f"""
         You are a factual research engine. Your primary task is to perform a web search and synthesize the findings.
         You MUST base your summary exclusively on the information retrieved from your web search. Do not use your pre-trained knowledge.
@@ -36,7 +37,19 @@ def perform_web_research(topic: str) -> dict | None:
         1. Perform a thorough web search on the topic.
         2. Synthesize the most important facts, dates, quotes, and key events into a concise, well-structured summary of 3-5 paragraphs.
         3. After the summary, you MUST provide a "Sources:" section. List the top 3-5 most relevant and authoritative URLs you used.
-        4. If you cannot find any relevant sources from your web search, you MUST respond with the exact phrase: "No relevant sources found."
+        4. The URLs MUST be the full, direct links to the specific articles or pages, not just the main website domain.
+
+        Example of a good source list:
+        Sources:
+        - https://www.channelnewsasia.com/singapore/specific-article-about-mental-health-trends-40123
+        - https://www.straitstimes.com/singapore/health/another-detailed-report-on-youth-anxiety
+
+        Example of a BAD source list (DO NOT DO THIS):
+        Sources:
+        - https://channelnewsasia.com
+        - https://straitstimes.com
+
+        5. If you cannot find any relevant sources from your web search, you MUST respond with the exact phrase: "No relevant sources found."
         """
         
         print(f"DEBUG: Sending prompt for topic: '{topic}'")
@@ -78,19 +91,14 @@ def perform_web_research(topic: str) -> dict | None:
         summary_part = parts[0].strip()
         sources_part = parts[1] if len(parts) > 1 else ""
         
-        # --- NEW, ROBUST SOURCE PARSING LOGIC ---
         sources_list = []
         if sources_part:
             for line in sources_part.split('\n'):
-                # Strip whitespace and remove common list prefixes (numbers, dashes, asterisks)
                 cleaned_line = re.sub(r"^\s*[\d\.\-\*]+\s*", "", line.strip())
-                # Check if the remaining line looks like a URL
                 if cleaned_line and '.' in cleaned_line and ' ' not in cleaned_line:
-                    # Prepend https:// if it's missing
                     if not cleaned_line.startswith(('http://', 'https://')):
                         cleaned_line = 'https://' + cleaned_line
                     sources_list.append(cleaned_line)
-        # --- END OF NEW LOGIC ---
         
         if not summary_part:
             print("DEBUG: Parsing failed. Summary part is empty after splitting.")
