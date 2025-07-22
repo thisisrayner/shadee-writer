@@ -1,8 +1,9 @@
-# Version 2.3.2:
-# - Corrected the WordPress confirmation flow to ensure success/error messages are always displayed.
-# - Removed unnecessary st.rerun() calls that were hiding action feedback.
+# Version 2.3.3:
+# - Replaced the brittle regex parser with a robust line-by-line parser to fix the 'Could not find Title' bug.
+# - Restored the longer, more detailed WordPress confirmation warning message.
+# - Restored the original, more descriptive placeholder text for the topic input field.
 # Previous versions:
-# - Version 2.3.1: Fixed a critical IndentationError.
+# - Version 2.3.2: Corrected the WordPress confirmation UI flow.
 
 """
 Module: app.py
@@ -28,29 +29,52 @@ GENERIC_KEYWORDS = ["therapy", "anxiety", "depression", "self-care", "wellness",
 
 def parse_gpt_output(text):
     """
-    Parses the structured GPT output string into a dictionary of sections.
+    A robust line-by-line parser for the structured GPT output.
+    Handles variations in formatting like markdown, missing colons, etc.
     """
-    if not text: return {}
-    sections = [
-        "Title", "Context & Research", "Important keywords", "Writing Reminders",
-        "1st Draft", "Final Draft checklist"
-    ]
-    pattern = re.compile(r'^\s*(' + '|'.join(re.escape(s) for s in sections) + r')\s*:', re.IGNORECASE | re.MULTILINE)
-    parts = pattern.split(text)
-    if len(parts) < 2: return {"Full Response": text}
+    if not text:
+        return {}
+
+    # Canonical headers that we expect to find.
+    sections = {
+        "Title": None, "Context & Research": None, "Important keywords": None,
+        "Writing Reminders": None, "1st Draft": None, "Final Draft checklist": None
+    }
+    
     parsed_data = {}
-    for i in range(1, len(parts), 2):
-        header = parts[i].strip()
-        content = parts[i+1].strip()
-        parsed_data[header] = content
+    current_section_key = None
+    
+    lines = text.split('\n')
+    
+    for line in lines:
+        found_new_section = False
+        # Check if the line is a new section header
+        for section_name in sections.keys():
+            # Match if line starts with the section name, case-insensitively, ignoring formatting
+            if re.match(rf"^\s*[\#\*\s]*{re.escape(section_name)}\s*:?", line, re.IGNORECASE):
+                current_section_key = section_name
+                # Initialize the section content, capturing any text on the same line after the header
+                # For example, "Title: My Awesome Title"
+                header_pattern = re.compile(rf"^\s*[\#\*\s]*{re.escape(section_name)}\s*:?\s*", re.IGNORECASE)
+                initial_content = header_pattern.sub("", line).strip()
+                parsed_data[current_section_key] = [initial_content] if initial_content else []
+                found_new_section = True
+                break # Move to the next line once a header is found
+        
+        # If it's not a new header but we are inside a section, append the line
+        if not found_new_section and current_section_key:
+            parsed_data[current_section_key].append(line)
+            
+    # Join the lines for each section back into a single string
+    for key, value_lines in parsed_data.items():
+        parsed_data[key] = "\n".join(value_lines).strip()
+        
+    # If parsing fails for some reason, return the full text as a fallback
+    if not parsed_data:
+        return {"Full Response": text}
+        
     return parsed_data
 
-def start_processing():
-    """Sets the processing flag to True and clears old data."""
-    st.session_state.processing = True
-    st.session_state.confirm_wordpress_send = False
-    if 'generated_package' in st.session_state: del st.session_state['generated_package']
-    if 'parsed_package' in st.session_state: del st.session_state['parsed_package']
 
 def main():
     """
@@ -71,7 +95,11 @@ def main():
     st.markdown("This tool helps you brainstorm and create draft articles for the Shadee Care blog.")
 
     st.header("Step 1: Define Your Article")
-    topic = st.text_input("Enter the article topic:", placeholder="e.g., 'Overcoming the fear of failure'")
+    # RESTORED: Original placeholder text
+    topic = st.text_input(
+        "Enter the article topic:",
+        placeholder="e.g., 'Overcoming the fear of failure' or a celebrity profile like 'Zendaya's journey with anxiety'"
+    )
     structure_keys_list = list(STRUCTURE_DETAILS.keys())
     structure_options = structure_keys_list + ["Let GPT Decide for Me"]
     structure_choice = st.selectbox("Choose an article structure:", options=structure_options, index=len(structure_keys_list))
@@ -79,12 +107,13 @@ def main():
     
     add_vertical_space(2)
 
-    st.button(
-        "Generate & Save Writer's Pack",
-        type="primary",
-        on_click=start_processing,
-        disabled=st.session_state.processing
-    )
+    def start_processing():
+        st.session_state.processing = True
+        st.session_state.confirm_wordpress_send = False
+        if 'generated_package' in st.session_state: del st.session_state['generated_package']
+        if 'parsed_package' in st.session_state: del st.session_state['parsed_package']
+
+    st.button("Generate & Save Writer's Pack", type="primary", on_click=start_processing, disabled=st.session_state.processing)
 
     if st.session_state.processing:
         try:
@@ -135,7 +164,6 @@ def main():
             st.session_state.processing = False
             st.rerun()
 
-    # --- Step 2: Review Your Writer's Pack ---
     if 'generated_package' in st.session_state:
         st.header("Step 2: Review Your Writer's Pack")
         full_package = st.session_state['generated_package']
@@ -155,17 +183,19 @@ def main():
             add_vertical_space(1)
             st_copy_to_clipboard(full_package, "Click here to copy the full output")
 
-            # --- WORDPRESS PUBLISHING SECTION ---
             st.divider()
             st.subheader("Publishing Options")
             
-            # The placeholder ensures the UI elements can be replaced cleanly.
             wp_placeholder = st.empty()
 
             if st.session_state.get('confirm_wordpress_send'):
                 with wp_placeholder.container():
+                    # RESTORED: Longer, more detailed warning message
                     st.warning("""
                     This will send the generated 1st draft directly to the Shadee.Care website. 
+                    You are highly encouraged to do further edits and refinement to the draft.
+                    Please do not send unnecessary drafts to the website as it'll require additional effort to manually delete them.
+                    
                     **Are you sure you want to proceed?**
                     """)
                     col1, col2, _ = st.columns([1, 1, 5])
@@ -174,25 +204,21 @@ def main():
                             post_title = parsed_package.get("Title", "").strip()
                             post_content = parsed_package.get("1st Draft", "").strip()
                             
-                            # Perform the action and let the function display feedback.
                             if not post_title or not post_content:
                                 st.error("Action failed: Could not find a valid Title or 1st Draft to send.")
                             else:
                                 with st.spinner("Sending content to WordPress..."):
                                     create_wordpress_draft(post_title, post_content)
                             
-                            # Reset the state but DO NOT rerun yet, so the message above is visible.
                             st.session_state.confirm_wordpress_send = False
 
                     with col2:
                         if st.button("❌ No, cancel"):
-                            # If canceling, we just want to reset the state and UI immediately.
                             st.session_state.confirm_wordpress_send = False
-                            st.rerun() # This will make the dialog disappear instantly.
+                            st.rerun()
             else:
                 with wp_placeholder.container():
                     if st.button("🚀 Send to WordPress as Draft"):
-                        # Set the state and rerun to show the confirmation dialog.
                         st.session_state.confirm_wordpress_send = True
                         st.rerun()
 
