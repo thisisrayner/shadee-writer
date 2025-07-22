@@ -1,8 +1,8 @@
-# Version 1.2.1:
-# - Added extensive print statements to log the raw Gemini API response for debugging.
-# - Enhanced on-screen error messages to provide more context when parsing fails.
+# Version 1.2.2:
+# - Corrected the source parsing logic to robustly handle various list formats
+#   (e.g., numbered lists, partial URLs) returned by the Gemini API.
 # Previous versions:
-# - Version 1.2.0: Upgraded model to 'gemini-1.5-pro-latest' and improved prompt.
+# - Version 1.2.1: Added extensive debugging logs.
 
 """
 Module: gemini_helper.py
@@ -15,12 +15,13 @@ import streamlit as st
 import google.generativeai as genai
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
 from google.api_core import exceptions as google_exceptions
+import re
 
 def perform_web_research(topic: str) -> dict | None:
     """
     Uses Gemini 1.5 Pro with web search to generate a research summary and list of sources.
     """
-    print("--- Starting Gemini Web Research ---") # DEBUG
+    print("--- Starting Gemini Web Research ---")
     try:
         gemini_api_key = st.secrets["google_gemini"]["API_KEY"]
         genai.configure(api_key=gemini_api_key)
@@ -38,7 +39,7 @@ def perform_web_research(topic: str) -> dict | None:
         4. If you cannot find any relevant sources from your web search, you MUST respond with the exact phrase: "No relevant sources found."
         """
         
-        print(f"DEBUG: Sending prompt for topic: '{topic}'") # DEBUG
+        print(f"DEBUG: Sending prompt for topic: '{topic}'")
 
         model = genai.GenerativeModel(
             model_name='gemini-1.5-pro-latest',
@@ -55,43 +56,48 @@ def perform_web_research(topic: str) -> dict | None:
             }
         )
         
-        # --- NEW: DETAILED DEBUGGING OF THE RESPONSE ---
         print("\n--- RAW GEMINI RESPONSE ---")
-        print(f"Type of response: {type(response)}")
-        print("Response Content:")
         try:
-            # This prints the full text if available.
             print(response.text)
-        except ValueError as e:
-            # This will catch cases where the response was blocked for safety/other reasons.
+        except Exception as e:
             print(f"Could not access response.text. A possible block occurred. Details: {e}")
             print("Full response object:", response)
         print("--- END RAW GEMINI RESPONSE ---\n")
         
-        # Check for a complete block before trying to parse
         if not hasattr(response, 'text'):
-            st.error("Gemini research failed: The response was blocked, likely due to safety filters or a malformed request. Check terminal logs for details.")
+            st.error("Gemini research failed: The response was blocked. Check terminal logs.")
             return None
 
         full_text = response.text
         
         if "No relevant sources found." in full_text:
-            print("DEBUG: Model explicitly returned 'No relevant sources found.'") # DEBUG
+            print("DEBUG: Model explicitly returned 'No relevant sources found.'")
             return {"summary": "The web search did not return any relevant sources for this topic.", "sources": []}
             
         parts = full_text.split("Sources:")
         summary_part = parts[0].strip()
         sources_part = parts[1] if len(parts) > 1 else ""
         
-        sources_list = [line.strip().lstrip('- ') for line in sources_part.split('\n') if line.strip().startswith('http')]
+        # --- NEW, ROBUST SOURCE PARSING LOGIC ---
+        sources_list = []
+        if sources_part:
+            for line in sources_part.split('\n'):
+                # Strip whitespace and remove common list prefixes (numbers, dashes, asterisks)
+                cleaned_line = re.sub(r"^\s*[\d\.\-\*]+\s*", "", line.strip())
+                # Check if the remaining line looks like a URL
+                if cleaned_line and '.' in cleaned_line and ' ' not in cleaned_line:
+                    # Prepend https:// if it's missing
+                    if not cleaned_line.startswith(('http://', 'https://')):
+                        cleaned_line = 'https://' + cleaned_line
+                    sources_list.append(cleaned_line)
+        # --- END OF NEW LOGIC ---
         
-        # Final check with more informative error
         if not summary_part:
-            print("DEBUG: Parsing failed. Summary part is empty after splitting.") # DEBUG
-            st.warning("Gemini returned a response, but it could not be parsed into a summary and sources. It may have been a refusal to answer.")
+            print("DEBUG: Parsing failed. Summary part is empty after splitting.")
+            st.warning("Gemini returned a response, but it could not be parsed into a summary and sources.")
             return None
 
-        print(f"DEBUG: Successfully parsed summary and found {len(sources_list)} sources.") # DEBUG
+        print(f"DEBUG: Successfully parsed summary and found {len(sources_list)} sources.")
         return {
             "summary": summary_part,
             "sources": sources_list
