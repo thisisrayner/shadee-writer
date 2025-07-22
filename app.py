@@ -1,8 +1,8 @@
-# Version 2.2.1:
-# - Fixed a bug where the WordPress confirmation dialog would not disappear after clicking Yes/No.
-# - Added print statements for better debugging of the button-click flow.
+# Version 2.3.1:
+# - Fixed a critical IndentationError in the main processing block.
+# - Cleaned up the main processing logic for better readability.
 # Previous versions:
-# - Version 2.2.0: Added a confirmation dialog for WordPress and improved the parser.
+# - Version 2.3.0: Implemented logic to disable the 'Generate' button during processing.
 
 """
 Module: app.py
@@ -45,6 +45,12 @@ def parse_gpt_output(text):
         parsed_data[header] = content
     return parsed_data
 
+def start_processing():
+    """Sets the processing flag to True and clears old data."""
+    st.session_state.processing = True
+    st.session_state.confirm_wordpress_send = False
+    if 'generated_package' in st.session_state: del st.session_state['generated_package']
+    if 'parsed_package' in st.session_state: del st.session_state['parsed_package']
 
 def main():
     """
@@ -73,52 +79,92 @@ def main():
     
     add_vertical_space(2)
 
-    def start_processing():
-        st.session_state.processing = True
-        st.session_state.confirm_wordpress_send = False
-        if 'generated_package' in st.session_state: del st.session_state['generated_package']
-        if 'parsed_package' in st.session_state: del st.session_state['parsed_package']
-
-    st.button("Generate & Save Writer's Pack", type="primary", on_click=start_processing, disabled=st.session_state.processing)
+    st.button(
+        "Generate & Save Writer's Pack",
+        type="primary",
+        on_click=start_processing,
+        disabled=st.session_state.processing
+    )
 
     if st.session_state.processing:
+        # This entire block is now correctly structured
         try:
             if not topic:
                 st.warning("Please enter a topic to generate content.")
+                # We stop processing here if the topic is empty
             else:
-                # ... (The main generation and saving logic is unchanged) ...
+                keywords_for_generation = []
+                package_content = None
+                
+                spinner_message = "✍️ Crafting your writer's pack..."
+                if use_trending_keywords: spinner_message = "✍️ Crafting with SEO trends..."
+
+                with st.spinner(spinner_message):
+                    if use_trending_keywords:
+                        fetched_keywords = get_trending_keywords()
+                        if fetched_keywords:
+                            keywords_for_generation = fetched_keywords
+                            st.success(f"Successfully used {len(fetched_keywords)} trending keywords.")
+                        else:
+                            st.info("No recent trends found. Using generic SEO keywords instead.")
+                            keywords_for_generation = GENERIC_KEYWORDS
+                    else:
+                        keywords_for_generation = GENERIC_KEYWORDS
+                    
+                    package_content = generate_article_package(
+                        topic, structure_choice, keywords=keywords_for_generation)
+                
+                if package_content:
+                    parsed_package = parse_gpt_output(package_content)
+                    st.session_state['generated_package'] = package_content
+                    st.session_state['parsed_package'] = parsed_package
+                    st.session_state['topic'] = topic
+                    st.session_state['structure_choice'] = structure_choice
+
+                    with st.spinner("💾 Saving to Google Sheets..."):
+                        sheet = connect_to_sheet()
+                        if sheet:
+                            success = write_to_sheet(
+                                sheet, topic, structure_choice, 
+                                keywords_for_generation, package_content)
+                            if success: st.success("Pack saved successfully to Google Sheets!")
+                            else: st.warning("Pack generated, but failed to save to Google Sheets.")
+                        else:
+                            st.warning("Pack generated, but could not connect to Google Sheets.")
+                else:
+                    st.error("Failed to generate content. Please check your API key or try again.")
         finally:
             st.session_state.processing = False
             st.rerun()
 
+    # --- Step 2: Review Your Writer's Pack ---
     if 'generated_package' in st.session_state:
         st.header("Step 2: Review Your Writer's Pack")
         full_package = st.session_state['generated_package']
         parsed_package = st.session_state['parsed_package']
         with st.container(border=True):
             for header, content in parsed_package.items():
-                # ... (Display expanders logic is unchanged) ...
+                icon = "📄"
+                if "Title" in header: icon = "🏷️"
+                elif "Context" in header: icon = "🔍"
+                elif "keywords" in header: icon = "🔑"
+                elif "Reminders" in header: icon = "📝"
+                elif "1st Draft" in header: icon = "✍️"
+                elif "checklist" in header: icon = "✅"
+                with st.expander(f"{icon} {header}", expanded=True):
+                    st.markdown(content)
             
             add_vertical_space(1)
             st_copy_to_clipboard(full_package, "Click here to copy the full output")
 
-            # --- WORDPRESS PUBLISHING SECTION (CORRECTED) ---
+            # --- WORDPRESS PUBLISHING SECTION ---
             st.divider()
             st.subheader("Publishing Options")
-
             if st.session_state.get('confirm_wordpress_send'):
-                print("DEBUG: Displaying WordPress confirmation dialog.") # DEBUG MESSAGE
-                st.warning("""
-                This will send the generated 1st draft directly to the Shadee.Care website. 
-                You are highly encouraged to do further edits and refinement to the draft.
-                Please do not send unnecessary drafts to the website as it'll require additional effort to manually delete them.
-                
-                **Are you sure you want to proceed?**
-                """)
+                st.warning("Are you sure you want to proceed?")
                 col1, col2, _ = st.columns([1, 1, 5])
                 with col1:
                     if st.button("✅ Yes, proceed"):
-                        print("DEBUG: 'Yes, proceed' clicked.") # DEBUG MESSAGE
                         post_title = parsed_package.get("Title", "").strip()
                         post_content = parsed_package.get("1st Draft", "").strip()
                         if not post_title or not post_content:
@@ -127,16 +173,13 @@ def main():
                             with st.spinner("Sending content to WordPress..."):
                                 create_wordpress_draft(post_title, post_content)
                         st.session_state.confirm_wordpress_send = False
-                        st.rerun() # <-- CRITICAL FIX
+                        st.rerun()
                 with col2:
                     if st.button("❌ No, cancel"):
-                        print("DEBUG: 'No, cancel' clicked.") # DEBUG MESSAGE
                         st.session_state.confirm_wordpress_send = False
-                        st.rerun() # <-- CRITICAL FIX
-            
+                        st.rerun()
             else:
                 if st.button("🚀 Send to WordPress as Draft"):
-                    print("DEBUG: 'Send to WordPress' button clicked. Setting state to True.") # DEBUG MESSAGE
                     st.session_state.confirm_wordpress_send = True
                     st.rerun()
 
