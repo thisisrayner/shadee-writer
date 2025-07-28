@@ -1,14 +1,14 @@
-# Version 3.1.4:
-# - Added a post-processing step to replace any remaining em dashes (—) with commas
-#   to ensure a more human-like final output.
+# Version 3.2.0:
+# - Reworked authentication to support user-specific passwords and roles.
+# - 'writer' role now has a separate password from 'admin' roles.
 # Previous versions:
-# - Version 3.1.3: Added cleaning logic for AI output markdown.
+# - Version 3.1.4: Added post-processing to remove em dashes.
 
 """
 Module: app.py
 Purpose: The main Streamlit application file for the Shadee.Care Writer's Assistant.
 - Renders a login screen to control access.
-- After authentication, renders the main application UI.
+- After authentication, renders the main application UI with role-based features.
 """
 
 # --- Imports ---
@@ -64,10 +64,11 @@ def start_processing():
 # --- Main Application Logic ---
 def run_main_app():
     """Renders the main writer's assistant application after successful login."""
-    st.sidebar.success(f"Logged in as **{st.session_state.username}**")
+    st.sidebar.success(f"Logged in as **{st.session_state.username}** (Role: {st.session_state.role})")
     if st.sidebar.button("Logout"):
         st.session_state.authenticated = False
         st.session_state.username = ""
+        st.session_state.role = ""
         st.rerun()
 
     st.title("🪴 Shadee.Care Writer's Assistant")
@@ -120,19 +121,11 @@ def run_main_app():
                 
                 if package_content:
                     parsed_package = parse_gpt_output(package_content)
-                    
-                    # --- NEW & IMPROVED: Clean the parsed content ---
                     for key, value in parsed_package.items():
-                        # Chain of cleaning operations:
-                        # 1. Strip leading/trailing whitespace
-                        # 2. Strip leading/trailing asterisks
-                        # 3. Replace any em dashes with a comma
-                        # 4. Strip whitespace again just in case
-                        cleaned_value = value.strip().strip('*').replace('—', ',').strip()
-                        parsed_package[key] = cleaned_value
+                        parsed_package[key] = value.strip().strip('*').replace('—', ',').strip()
                     
                     st.session_state.generated_package = package_content
-                    st.session_state.parsed_package = parsed_package # Store the CLEANED version
+                    st.session_state.parsed_package = parsed_package
                     st.session_state.topic = topic
                     st.session_state.structure_choice = structure_choice
 
@@ -174,26 +167,16 @@ def run_main_app():
 
             add_vertical_space(1)
             st_copy_to_clipboard(full_package, "Click here to copy the full output")
-
-            try:
-                wordpress_allowed_users = st.secrets.get("authentication", {}).get("WORDPRESS_USERS", [])
-            except Exception:
-                wordpress_allowed_users = []
-
-            if st.session_state.username in wordpress_allowed_users:
+            
+            # Use the user's role to determine if the WordPress button is shown
+            if st.session_state.get("role") == "admin":
                 st.divider()
                 st.subheader("Publishing Options")
                 
                 wp_placeholder = st.empty()
                 if st.session_state.get('confirm_wordpress_send'):
                     with wp_placeholder.container():
-                        st.warning("""
-                        This will send the generated 1st draft directly to the Shadee.Care website. 
-                        You are highly encouraged to do further edits and refinement to the draft.
-                        Please do not send unnecessary drafts to the website as it'll require additional effort to manually delete them.
-                        
-                        **Are you sure you want to proceed?**
-                        """)
+                        st.warning("Are you sure you want to proceed?")
                         col1, col2, _ = st.columns([1, 1, 5])
                         with col1:
                             if st.button("✅ Yes, proceed"):
@@ -217,27 +200,36 @@ def run_main_app():
 
 # --- Login Screen Logic ---
 def login_screen():
-    """Renders the login screen and handles authentication."""
+    """Renders the login screen and handles authentication using the new user list structure."""
     st.title("Shadee.Care Writer's Assistant Login")
     
     with st.form("login_form"):
-        username = st.text_input("Username").lower()
-        password = st.text_input("Password", type="password")
+        username_input = st.text_input("Username").lower()
+        password_input = st.text_input("Password", type="password")
         submitted = st.form_submit_button("Login")
 
         if submitted:
             try:
-                expected_password = st.secrets["authentication"]["COMMON_PASSWORD"]
-                whitelisted_users = st.secrets["authentication"]["WHITELISTED_USERNAMES"]
-
-                if username in whitelisted_users and password == expected_password:
+                # Get the list of user dictionaries from secrets
+                users = st.secrets["authentication"]["users"]
+                
+                # Find the user in the list
+                user_found = None
+                for user in users:
+                    if user.get("username") == username_input:
+                        user_found = user
+                        break
+                
+                # Check credentials
+                if user_found and user_found.get("password") == password_input:
                     st.session_state.authenticated = True
-                    st.session_state.username = username
+                    st.session_state.username = user_found.get("username")
+                    st.session_state.role = user_found.get("role", "writer") # Default to 'writer' if no role is set
                     st.rerun()
                 else:
                     st.error("Invalid username or password.")
             except KeyError:
-                st.error("Authentication is not configured correctly in secrets.toml.")
+                st.error("Authentication is not configured correctly in secrets.toml. Please check the 'users' list.")
             except Exception as e:
                 st.error(f"An error occurred: {e}")
 
@@ -246,16 +238,13 @@ def main():
     """The main function that routes to login or the app."""
     st.set_page_config(page_title="Shadee.Care Writer's Assistant", page_icon="🪴", layout="wide")
 
-    if 'authenticated' not in st.session_state:
-        st.session_state.authenticated = False
-    if 'username' not in st.session_state:
-        st.session_state.username = ""
-    if 'processing' not in st.session_state:
-        st.session_state.processing = False
-    if 'confirm_wordpress_send' not in st.session_state:
-        st.session_state.confirm_wordpress_send = False
-    if 'research_data' not in st.session_state:
-        st.session_state.research_data = {"summary": "", "sources": []}
+    # Initialize all necessary session state keys
+    if 'authenticated' not in st.session_state: st.session_state.authenticated = False
+    if 'username' not in st.session_state: st.session_state.username = ""
+    if 'role' not in st.session_state: st.session_state.role = ""
+    if 'processing' not in st.session_state: st.session_state.processing = False
+    if 'confirm_wordpress_send' not in st.session_state: st.session_state.confirm_wordpress_send = False
+    if 'research_data' not in st.session_state: st.session_state.research_data = {"summary": "", "sources": []}
 
     if st.session_state.authenticated:
         run_main_app()
