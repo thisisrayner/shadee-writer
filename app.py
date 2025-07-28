@@ -168,7 +168,6 @@ def run_main_app():
             add_vertical_space(1)
             st_copy_to_clipboard(full_package, "Click here to copy the full output")
             
-            # Use the user's role to determine if the WordPress button is shown
             if st.session_state.get("role") == "admin":
                 st.divider()
                 st.subheader("Publishing Options")
@@ -210,21 +209,18 @@ def login_screen():
 
         if submitted:
             try:
-                # Get the list of user dictionaries from secrets
                 users = st.secrets["authentication"]["users"]
                 
-                # Find the user in the list
                 user_found = None
                 for user in users:
                     if user.get("username") == username_input:
                         user_found = user
                         break
                 
-                # Check credentials
                 if user_found and user_found.get("password") == password_input:
                     st.session_state.authenticated = True
                     st.session_state.username = user_found.get("username")
-                    st.session_state.role = user_found.get("role", "writer") # Default to 'writer' if no role is set
+                    st.session_state.role = user_found.get("role", "writer")
                     st.rerun()
                 else:
                     st.error("Invalid username or password.")
@@ -238,7 +234,6 @@ def main():
     """The main function that routes to login or the app."""
     st.set_page_config(page_title="Shadee.Care Writer's Assistant", page_icon="🪴", layout="wide")
 
-    # Initialize all necessary session state keys
     if 'authenticated' not in st.session_state: st.session_state.authenticated = False
     if 'username' not in st.session_state: st.session_state.username = ""
     if 'role' not in st.session_state: st.session_state.role = ""
