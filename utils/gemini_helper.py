@@ -1,24 +1,69 @@
-# Version 2.0.0:
-# - Complete overhaul to implement a robust search->scrape->summarize pipeline.
-# - Replaced internal 'google_search_retrieval' tool with explicit calls to
-#   our own search_engine and scraper modules to prevent URL hallucination.
+# Version 2.1.0:
+# - Added a new function 'generate_internal_search_queries' for the internal linking feature.
 # Previous versions:
-# - Version 1.3.0: Attempted to fix URL hallucination via prompt engineering.
+# - Version 2.0.0: Complete overhaul to implement a robust search->scrape->summarize pipeline.
 
 """
 Module: gemini_helper.py
 Purpose: Handles the "research" stage of the content pipeline by orchestrating
-         an explicit search, scrape, and summarization process.
+         an explicit search, scrape, and summarization process. Also provides
+         helper functions for AI-driven meta-tasks like query generation.
 """
 
 # --- Imports ---
 import streamlit as st
 import google.generativeai as genai
 from google.api_core import exceptions as google_exceptions
-# NEW: Import our new helper modules
 from .search_engine import google_search
 from .scraper import scrape_url
 
+# --- NEW: Function for Generating Internal Search Queries ---
+def generate_internal_search_queries(topic: str) -> list[str]:
+    """
+    Uses a fast LLM to generate broader, thematic search queries based on a specific topic.
+
+    Args:
+        topic (str): The writer's specific article topic.
+
+    Returns:
+        list[str]: A list of 3-5 effective, broader search terms.
+    """
+    print(f"DEBUG: Generating internal search queries for topic: '{topic}'")
+    try:
+        gemini_api_key = st.secrets["google_gemini"]["API_KEY"]
+        genai.configure(api_key=gemini_api_key)
+
+        prompt = f"""
+        You are an SEO expert specializing in content strategy for a youth mental health blog.
+        A writer is creating an article on the topic: "{topic}".
+
+        Your task is to generate 3-5 broader, thematic search queries that would be effective for finding
+        related, foundational articles on our own blog.
+        
+        Return ONLY a single line of comma-separated values. Do not use numbers or bullet points.
+
+        Example 1:
+        User Topic: "Zendaya's struggles with social anxiety"
+        Your Output: celebrity mental health, coping with anxiety, social pressure, self-worth, imposter syndrome
+
+        Example 2:
+        User Topic: "The benefits of journaling for depression"
+        Your Output: journaling prompts, managing depression, mindfulness techniques, building healthy habits, self-care
+        """
+
+        # Using the fast model for this quick, non-critical task
+        model = genai.GenerativeModel(model_name='gemini-1.5-flash-latest')
+        response = model.generate_content(prompt)
+        
+        queries_string = response.text.strip()
+        return [q.strip() for q in queries_string.split(',') if q.strip()]
+
+    except Exception as e:
+        st.warning(f"Could not generate internal search queries due to an error: {e}")
+        # Fallback to just using the original topic if the AI fails
+        return [topic]
+
+# --- Existing Main Research Function ---
 def perform_web_research(topic: str) -> dict | None:
     """
     Orchestrates a robust, multi-step research process to prevent URL hallucination.
