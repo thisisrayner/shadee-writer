@@ -1,7 +1,6 @@
 # Version 3.3.2:
 # - Fixed UI regressions: Restored correct placeholder text and sidebar footer content.
 # - Reworked the "Internal Links" feature to be automatic after generation, removing the button.
-# - Removed the redundant "Step 2: Generate Article" header.
 # Previous versions:
 # - Version 3.3.1: Fixed a critical IndentationError.
 
@@ -77,7 +76,6 @@ def run_main_app():
             st.session_state.username = ""
             st.session_state.role = ""
             st.rerun()
-        # RESTORED: Full sidebar footer HTML
         st.markdown(
             """
             <div class="sidebar-footer">
@@ -94,7 +92,6 @@ def run_main_app():
     st.markdown("This tool helps you brainstorm and create draft articles for the Shadee.Care blog.")
     
     st.header("Step 1: Define Your Article")
-    # RESTORED: Original placeholder text
     topic = st.text_input(
         "Enter the article topic:",
         placeholder="e.g., 'Overcoming the fear of failure' or a celebrity profile like 'Zendaya's journey with anxiety'"
@@ -185,8 +182,7 @@ def run_main_app():
                 with st.expander("📚 Research Sources", expanded=True):
                     for source in research_sources:
                         st.markdown(f"- {source}")
-
-            # --- NEW: Automatic Internal Link Finder ---
+            
             with st.expander("🔗 Suggested Internal Links from Vibe.Shadee.Care"):
                 with st.spinner("Finding related articles..."):
                     smart_queries = generate_internal_search_queries(st.session_state.topic)
@@ -201,7 +197,7 @@ def run_main_app():
                             st.markdown(f"- {link}")
                     else:
                         st.write("No relevant internal articles were found for this topic.")
-            
+
             add_vertical_space(1)
             st_copy_to_clipboard(full_package, "Click here to copy the full output")
             
@@ -234,10 +230,37 @@ def run_main_app():
                             st.session_state.confirm_wordpress_send = True
                             st.rerun()
 
-# --- Login Screen Logic & Main App Router ---
+# --- Login Screen Logic ---
 def login_screen():
-    # ... (function is unchanged) ...
+    """Renders the login screen and handles authentication."""
+    st.title("Shadee.Care Writer's Assistant Login")
+    
+    with st.form("login_form"):
+        username_input = st.text_input("Username").lower()
+        password_input = st.text_input("Password", type="password")
+        submitted = st.form_submit_button("Login")
 
+        if submitted:
+            try:
+                users = st.secrets["authentication"]["users"]
+                user_found = None
+                for user in users:
+                    if user.get("username") == username_input:
+                        user_found = user
+                        break
+                if user_found and user_found.get("password") == password_input:
+                    st.session_state.authenticated = True
+                    st.session_state.username = user_found.get("username")
+                    st.session_state.role = user_found.get("role", "writer")
+                    st.rerun()
+                else:
+                    st.error("Invalid username or password.")
+            except KeyError:
+                st.error("Authentication is not configured correctly. Please check '[[authentication.users]]' format in secrets.")
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
+
+# --- Main App Router ---
 def main():
     """The main function that routes to login or the app."""
     st.set_page_config(page_title="Shadee.Care Writer's Assistant", page_icon="🪴", layout="wide")
@@ -248,7 +271,8 @@ def main():
     if 'processing' not in st.session_state: st.session_state.processing = False
     if 'confirm_wordpress_send' not in st.session_state: st.session_state.confirm_wordpress_send = False
     if 'research_data' not in st.session_state: st.session_state.research_data = {"summary": "", "sources": []}
-    
+    if 'internal_links' not in st.session_state: st.session_state.internal_links = None
+
     if st.session_state.authenticated:
         run_main_app()
     else:
