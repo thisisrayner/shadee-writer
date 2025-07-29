@@ -1,7 +1,7 @@
-# Version 3.2.0:
-# - Reworked authentication to support user-specific passwords and roles.
+# Version 3.2.1:
+# - Added a tooltip to the "Include trending keywords" checkbox for better user clarity.
 # Previous versions:
-# - Version 3.1.4: Added post-processing to remove em dashes.
+# - Version 3.2.0: Reworked authentication to support user-specific passwords and roles.
 
 """
 Module: app.py
@@ -81,7 +81,14 @@ def run_main_app():
     structure_keys_list = list(STRUCTURE_DETAILS.keys())
     structure_options = structure_keys_list + ["Let AI decide"]
     structure_choice = st.selectbox("Choose an article structure:", options=structure_options, index=len(structure_keys_list))
-    use_trending_keywords = st.checkbox("Include trending keywords for SEO", value=True)
+    
+    # --- UPDATED WIDGET ---
+    use_trending_keywords = st.checkbox(
+        "Include trending keywords for SEO", 
+        value=True,
+        help="Check this to include recently trending keywords from the social listening tool in the article generation."
+    )
+    
     add_vertical_space(2)
 
     st.button("Generate & Save Writer's Pack", type="primary", on_click=start_processing, disabled=st.session_state.processing)
@@ -174,7 +181,13 @@ def run_main_app():
                 wp_placeholder = st.empty()
                 if st.session_state.get('confirm_wordpress_send'):
                     with wp_placeholder.container():
-                        st.warning("Are you sure you want to proceed?")
+                        st.warning("""
+                        This will send the generated 1st draft directly to the Shadee.Care website. 
+                        You are highly encouraged to do further edits and refinement to the draft.
+                        Please do not send unnecessary drafts to the website as it'll require additional effort to manually delete them.
+                        
+                        **Are you sure you want to proceed?**
+                        """)
                         col1, col2, _ = st.columns([1, 1, 5])
                         with col1:
                             if st.button("✅ Yes, proceed"):
@@ -198,7 +211,7 @@ def run_main_app():
 
 # --- Login Screen Logic ---
 def login_screen():
-    """Renders the login screen and handles authentication using the new user list structure."""
+    """Renders the login screen and handles authentication."""
     st.title("Shadee.Care Writer's Assistant Login")
     
     with st.form("login_form"):
@@ -208,15 +221,12 @@ def login_screen():
 
         if submitted:
             try:
-                # This line requires the dotted key format in secrets
                 users = st.secrets["authentication"]["users"]
-                
                 user_found = None
                 for user in users:
                     if user.get("username") == username_input:
                         user_found = user
                         break
-                
                 if user_found and user_found.get("password") == password_input:
                     st.session_state.authenticated = True
                     st.session_state.username = user_found.get("username")
