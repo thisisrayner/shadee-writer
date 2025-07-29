@@ -54,9 +54,6 @@ pip install -r requirements.txt
 
     
 
-IGNORE_WHEN_COPYING_START
-Use code with caution.
-IGNORE_WHEN_COPYING_END
 2. Configure Credentials (.streamlit/secrets.toml)
 
 Create a .streamlit/secrets.toml file and fill it with your credentials. This file is for local development; for deployment, copy its contents into the Streamlit Cloud secrets manager.
@@ -100,25 +97,12 @@ password = "your_admin_password"
 role = "admin"
 
 [[authentication.users]]
-username = "sandra"
-password = "your_admin_password"
-role = "admin"
-
-[[authentication.users]]
-username = "dionne"
-password = "your_admin_password"
-role = "admin"
-
-[[authentication.users]]
 username = "writer"
 password = "your_writer_password"
 role = "writer"
 
     
 
-IGNORE_WHEN_COPYING_START
-Use code with caution. Toml
-IGNORE_WHEN_COPYING_END
 ▶️ Running the Application
 Generated bash
 
@@ -127,12 +111,22 @@ streamlit run app.py
 
     
 
-IGNORE_WHEN_COPYING_START
-Use code with caution. Bash
-IGNORE_WHEN_COPYING_END
+
 🔮 Future Enhancements
 
 This section outlines potential next steps and feature ideas for the project.
+
+    Targeted Audience Personas:
+
+        Introduce an option in the UI for the writer to select a specific audience segment, such as Younger Youth (13-17) or Young Adults (18-30+).
+
+        Dynamic Prompt Engineering: Based on the selection, the application will use a different, tailored prompt for the "Writer" AI (GPT-4o Mini).
+
+        Tone and Language: The prompt for the younger audience would instruct the AI to use a simpler, more direct tone (like a relatable older sibling), while the prompt for young adults would allow for more nuance and complexity (like a supportive peer). It would also guide the strategic use (or avoidance) of slang.
+
+        Content Length and Complexity: The system could aim for shorter, more scannable articles for the 13-17 age group and more in-depth, longer-form content for the 18-30+ group.
+
+        Keyword Strategy: The system could even select different SEO keywords from the social listening data that are more relevant to each demographic's specific concerns (e.g., "exam stress" vs. "career burnout").
 
     Deeper WordPress Integration:
 
