@@ -1,8 +1,7 @@
-# Version 3.3.0:
-# - Added a "Suggested Internal Links" feature that uses an AI to generate
-#   broader search queries and then searches the vibe.shadee.care site.
+# Version 3.3.1:
+# - Fixed a critical IndentationError caused by an empty function block.
 # Previous versions:
-# - Version 3.2.4: Implemented a robust CSS Flexbox sidebar footer.
+# - Version 3.3.0: Added the "Suggested Internal Links" feature.
 
 """
 Module: app.py
@@ -62,12 +61,14 @@ def start_processing():
     if 'generated_package' in st.session_state: del st.session_state['generated_package']
     if 'parsed_package' in st.session_state: del st.session_state['parsed_package']
     if 'research_data' in st.session_state: del st.session_state['research_data']
+    if 'internal_links' in st.session_state: del st.session_state['internal_links']
+
 
 # --- Main Application Logic ---
 def run_main_app():
     """Renders the main writer's assistant application after successful login."""
     
-    st.markdown("""<style>...</style>""", unsafe_allow_html=True) # CSS for footer
+    st.markdown("""<style>...</style>""", unsafe_allow_html=True)
     with st.sidebar:
         st.success(f"Logged in as **{st.session_state.username}** (Role: {st.session_state.role})")
         if st.button("Logout"):
@@ -75,22 +76,18 @@ def run_main_app():
             st.session_state.username = ""
             st.session_state.role = ""
             st.rerun()
-        st.markdown("""<div class="sidebar-footer">...</div>""", unsafe_allow_html=True) # Footer HTML
+        st.markdown("""<div class="sidebar-footer">...</div>""", unsafe_allow_html=True)
 
     st.title("🪴 Shadee.Care Writer's Assistant")
     st.markdown("This tool helps you brainstorm and create draft articles for the Shadee.Care blog.")
     
     st.header("Step 1: Define Your Article")
-    topic = st.text_input(
-        "Enter the article topic:",
-        placeholder="e.g., 'Zendaya's journey with anxiety'"
-    )
+    topic = st.text_input("Enter the article topic:", placeholder="e.g., 'Zendaya's journey with anxiety'")
     structure_keys_list = list(STRUCTURE_DETAILS.keys())
     structure_options = structure_keys_list + ["Let AI decide"]
     structure_choice = st.selectbox("Choose an article structure:", options=structure_options, index=len(structure_keys_list))
     use_trending_keywords = st.checkbox("Include trending keywords for SEO", value=True)
     
-    # --- Internal Link Finder UI ---
     st.subheader("Suggested Internal Links")
     if st.button("🔗 Find related articles on Vibe.Shadee.Care"):
         if not topic:
@@ -110,11 +107,9 @@ def run_main_app():
             with st.expander("Found Related Articles", expanded=True):
                 for link in st.session_state.internal_links:
                     st.markdown(f"- {link}")
-        # We don't need a specific message if none are found, it will just be blank.
     
     add_vertical_space(2)
 
-    # --- Generation Logic ---
     st.header("Step 2: Generate Article")
     st.button("Generate & Save Writer's Pack", type="primary", on_click=start_processing, disabled=st.session_state.processing)
 
@@ -175,7 +170,7 @@ def run_main_app():
             st.rerun()
 
     if 'generated_package' in st.session_state:
-        st.header("Step 3: Review Your Writer's Pack") # Renumbered for clarity
+        st.header("Step 3: Review Your Writer's Pack")
         full_package = st.session_state.generated_package
         parsed_package = st.session_state.parsed_package
         with st.container(border=True):
@@ -228,10 +223,37 @@ def run_main_app():
                             st.session_state.confirm_wordpress_send = True
                             st.rerun()
 
-# --- Login Screen Logic & Main App Router ---
+# --- Login Screen Logic ---
 def login_screen():
-    # ... (function is unchanged) ...
+    """Renders the login screen and handles authentication."""
+    st.title("Shadee.Care Writer's Assistant Login")
+    
+    with st.form("login_form"):
+        username_input = st.text_input("Username").lower()
+        password_input = st.text_input("Password", type="password")
+        submitted = st.form_submit_button("Login")
 
+        if submitted:
+            try:
+                users = st.secrets["authentication"]["users"]
+                user_found = None
+                for user in users:
+                    if user.get("username") == username_input:
+                        user_found = user
+                        break
+                if user_found and user_found.get("password") == password_input:
+                    st.session_state.authenticated = True
+                    st.session_state.username = user_found.get("username")
+                    st.session_state.role = user_found.get("role", "writer")
+                    st.rerun()
+                else:
+                    st.error("Invalid username or password.")
+            except KeyError:
+                st.error("Authentication is not configured correctly. Please check '[[authentication.users]]' format in secrets.")
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
+
+# --- Main App Router ---
 def main():
     """The main function that routes to login or the app."""
     st.set_page_config(page_title="Shadee.Care Writer's Assistant", page_icon="🪴", layout="wide")
@@ -242,7 +264,6 @@ def main():
     if 'processing' not in st.session_state: st.session_state.processing = False
     if 'confirm_wordpress_send' not in st.session_state: st.session_state.confirm_wordpress_send = False
     if 'research_data' not in st.session_state: st.session_state.research_data = {"summary": "", "sources": []}
-    # Initialize the new session state key
     if 'internal_links' not in st.session_state: st.session_state.internal_links = None
 
     if st.session_state.authenticated:
