@@ -1,8 +1,8 @@
-# Version 3.2.3:
-# - Implemented a true sidebar footer for the feedback link, ensuring it always
-#   appears at the bottom of the sidebar regardless of screen height.
+# Version 3.2.4:
+# - Re-implemented the sidebar footer using a robust CSS Flexbox layout to fix
+#   overlapping elements and ensure it is always at the bottom.
 # Previous versions:
-# - Version 3.2.2: Added a styled feedback link to the sidebar.
+# - Version 3.2.3: Attempted to fix footer with absolute positioning.
 
 """
 Module: app.py
@@ -65,42 +65,48 @@ def start_processing():
 def run_main_app():
     """Renders the main writer's assistant application after successful login."""
     
-    # --- NEW: Sidebar Footer Implementation ---
-    # 1. Inject custom CSS to create the footer layout
+    # --- NEW: Robust Sidebar Footer Implementation ---
+    # This CSS turns the sidebar into a flex container, and the 'margin-top: auto'
+    # on the footer pushes it to the bottom. This is the correct way to do this.
     st.markdown("""
     <style>
+        /* Target the main container within the sidebar */
+        [data-testid="stSidebar"] > div:first-child {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        /* Target our custom footer div */
         .sidebar-footer {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            width: calc(100% - 40px);
+            margin-top: auto;
+            margin-bottom: 1rem;
             text-align: center;
         }
     </style>
     """, unsafe_allow_html=True)
 
-    # 2. Add the main sidebar content
     with st.sidebar:
-        st.success(f"Logged in as **{st.session_state.username}** (Role: {st.session_state.role})")
-        if st.button("Logout"):
-            st.session_state.authenticated = False
-            st.session_state.username = ""
-            st.session_state.role = ""
-            st.rerun()
-            
-        # 3. Add the footer content inside a container with the special class
+        # This container holds the main sidebar content (top-aligned)
         with st.container():
-            st.markdown(
-                """
-                <div class="sidebar-footer">
-                    <p style="font-size: 0.85em; color: #A9A9A9;">
-                        Got feedback or an idea to improve this tool? 
-                        <a href="https://form.jotform.com/251592235479970" target="_blank" style="color: #A9A9A9; text-decoration: underline;">Click here</a>
-                    </p>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+            st.success(f"Logged in as **{st.session_state.username}** (Role: {st.session_state.role})")
+            if st.button("Logout"):
+                st.session_state.authenticated = False
+                st.session_state.username = ""
+                st.session_state.role = ""
+                st.rerun()
+
+        # This markdown block with the special class will be pushed to the bottom
+        st.markdown(
+            """
+            <div class="sidebar-footer">
+                <p style="font-size: 0.85em; color: #A9A9A9;">
+                    Got feedback or an idea to improve this tool? 
+                    <a href="https://form.jotform.com/251592235479970" target="_blank" style="color: #A9A9A9; text-decoration: underline;">Click here</a>
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
     st.title("🪴 Shadee.Care Writer's Assistant")
     st.markdown("This tool helps you brainstorm and create draft articles for the Shadee.Care blog.")
