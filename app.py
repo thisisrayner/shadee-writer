@@ -1,7 +1,7 @@
-# Version 3.2.1:
-# - Added a tooltip to the "Include trending keywords" checkbox for better user clarity.
+# Version 3.2.2:
+# - Added a styled feedback link to the bottom of the sidebar.
 # Previous versions:
-# - Version 3.2.0: Reworked authentication to support user-specific passwords and roles.
+# - Version 3.2.1: Added a tooltip to the SEO keywords checkbox.
 
 """
 Module: app.py
@@ -69,6 +69,18 @@ def run_main_app():
         st.session_state.username = ""
         st.session_state.role = ""
         st.rerun()
+        
+    # --- NEW: Feedback Link in Sidebar ---
+    # Using markdown with inline CSS for styling.
+    # The 'target="_blank"' opens the link in a new tab.
+    feedback_link_html = """
+    <p style="font-size: 0.85em; color: #A9A9A9; text-align: center;">
+        Got feedback or an idea to improve this tool? 
+        <a href="https://form.jotform.com/251592235479970" target="_blank" style="color: #A9A9A9;">Click here</a>
+    </p>
+    """
+    st.sidebar.markdown(feedback_link_html, unsafe_allow_html=True)
+
 
     st.title("🪴 Shadee.Care Writer's Assistant")
     st.markdown("This tool helps you brainstorm and create draft articles for the Shadee.Care blog.")
@@ -82,7 +94,6 @@ def run_main_app():
     structure_options = structure_keys_list + ["Let AI decide"]
     structure_choice = st.selectbox("Choose an article structure:", options=structure_options, index=len(structure_keys_list))
     
-    # --- UPDATED WIDGET ---
     use_trending_keywords = st.checkbox(
         "Include trending keywords for SEO", 
         value=True,
