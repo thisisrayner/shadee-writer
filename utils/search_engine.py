@@ -1,22 +1,39 @@
-# Version 1.0.0:
-# - Initial implementation for Google Custom Search API calls.
+# Version 1.1.0:
+# - Added an optional 'site_filter' parameter to allow for site-specific searches.
+# Previous versions:
+# - Version 1.0.0: Initial implementation for Google Custom Search API calls.
 
 """
 Module: search_engine.py
-Purpose: Handles interactions with the Google Custom Search API to fetch real, verified search results.
+Purpose: Handles interactions with the Google Custom Search API to fetch search results.
 """
 import streamlit as st
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-def google_search(query: str, num_results: int = 5) -> list[str]:
+def google_search(query: str, num_results: int = 5, site_filter: str = None) -> list[str]:
     """
     Performs a Google search and returns a list of real URLs.
+
+    Args:
+        query (str): The search query.
+        num_results (int): The number of results to return. Max 10.
+        site_filter (str, optional): A specific domain to restrict the search to
+                                     (e.g., 'vibe.shadee.care'). Defaults to None.
+
+    Returns:
+        list[str]: A list of result URLs, or an empty list on failure.
     """
     try:
         api_key = st.secrets["google_search"]["API_KEY"]
         cse_id = st.secrets["google_search"]["CSE_ID"]
         
+        # --- NEW: Add the site filter to the query if it exists ---
+        if site_filter:
+            query = f"{query} site:{site_filter}"
+        
+        print(f"DEBUG: Performing Google Search with query: '{query}'")
+
         service = build("customsearch", "v1", developerKey=api_key)
         
         res = service.cse().list(q=query, cx=cse_id, num=num_results).execute()
