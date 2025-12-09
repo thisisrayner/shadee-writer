@@ -1,7 +1,8 @@
-# Version 3.3.2:
-# - Fixed UI regressions: Restored correct placeholder text and sidebar footer content.
-# - Reworked the "Internal Links" feature to be automatic after generation, removing the button.
+# Version 3.4.0:
+# - Improved error handling for API quota issues with clearer, user-friendly messages.
+# - Changed warning to info when web research unavailable to reduce alarm.
 # Previous versions:
+# - Version 3.3.2: Fixed UI regressions: Restored correct placeholder text and sidebar footer content.
 # - Version 3.3.1: Fixed a critical IndentationError.
 
 """
@@ -121,7 +122,7 @@ def run_main_app():
                     research_context = research_data['summary']
                     st.session_state.research_data = research_data
                 else:
-                    st.warning("Web research failed or returned no content.")
+                    st.info("📝 No live research available. Generating article using AI's built-in knowledge.")
                     st.session_state.research_data = {"summary": research_context, "sources": []}
                 
                 keywords_for_generation = GENERIC_KEYWORDS

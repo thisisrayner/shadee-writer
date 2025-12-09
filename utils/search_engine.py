@@ -1,6 +1,7 @@
-# Version 1.1.0:
-# - Added an optional 'site_filter' parameter to allow for site-specific searches.
+# Version 1.2.0:
+# - Improved error handling for quota exceeded errors with user-friendly messages and solutions.
 # Previous versions:
+# - Version 1.1.0: Added an optional 'site_filter' parameter to allow for site-specific searches.
 # - Version 1.0.0: Initial implementation for Google Custom Search API calls.
 
 """
@@ -43,7 +44,22 @@ def google_search(query: str, num_results: int = 5, site_filter: str = None) -> 
         return []
             
     except HttpError as e:
-        st.warning(f"Google Search API error for query '{query}': {e}. Check your API key and CSE ID.")
+        error_details = str(e)
+        
+        # Check for quota exceeded error (HTTP 429)
+        if "429" in error_details or "Quota exceeded" in error_details or "rateLimitExceeded" in error_details:
+            st.error(f"⚠️ **Google Search API Daily Quota Exceeded**")
+            st.info("""
+            **What this means:** The free tier of Google Custom Search API allows 100 searches per day, and you've hit that limit.
+            
+            **Solutions:**
+            1. **Wait until tomorrow** - Your quota will reset at midnight Pacific Time
+            2. **Upgrade your API plan** - Visit [Google Cloud Console](https://console.cloud.google.com) to increase your quota
+            3. **Continue anyway** - The app will generate content using the AI's built-in knowledge (no live research)
+            """)
+        else:
+            st.warning(f"Google Search API error for query '{query}': {e}")
+        
         return []
     except KeyError:
         st.error("Google Search API is not configured in secrets.toml.")

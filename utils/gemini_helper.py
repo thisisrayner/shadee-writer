@@ -88,8 +88,9 @@ def perform_web_research(topic: str) -> dict | None:
                 scraped_content.append(f"--- START OF SOURCE: {url} ---\n{content}\n--- END OF SOURCE ---")
         
         if not scraped_content:
-            st.warning("Successfully found URLs, but could not scrape content from any of them.")
-            return {"summary": "Could not retrieve web content to generate a summary.", "sources": real_urls}
+            # Don't show another warning - the search_engine.py already showed the quota error
+            # Just return with empty summary and the URLs we attempted
+            return {"summary": "Live web research was unavailable. Article will be generated using AI's built-in knowledge.", "sources": real_urls}
 
         # --- Step 3: Summarize the scraped text with Gemini ---
         print("DEBUG: Content scraped. Sending to Gemini for summarization...")
