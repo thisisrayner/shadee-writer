@@ -41,11 +41,17 @@ def google_search(query: str, num_results: int = 5, site_filter: str = None) -> 
 
         if 'items' in res:
             results = [item['link'] for item in res['items']]
+            # Console logging (for server logs)
             print(f"✅ Google Search SUCCESS: Found {len(results)} results for query: '{query}'")
             print(f"📋 Results: {results}")
+            # UI logging (for users to see in app)
+            with st.expander(f"🔍 Search Query: '{query}' - Found {len(results)} results", expanded=False):
+                for idx, url in enumerate(results, 1):
+                    st.text(f"{idx}. {url}")
             return results
         
         print(f"⚠️ Google Search: No results found for query: '{query}'")
+        st.info(f"🔍 Search Query: '{query}' - No results found")
         return []
             
     except HttpError as e:

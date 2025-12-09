@@ -146,11 +146,17 @@ def run_main_app():
                         keywords_for_generation = fetched_keywords
                         st.success(f"Incorporated {len(fetched_keywords)} trending keywords.")
                         print(f"🔑 Using TRENDING keywords: {keywords_for_generation}")
+                        with st.expander("🔑 Keywords Being Used (Trending)", expanded=False):
+                            st.write(", ".join(keywords_for_generation))
                     else:
                         st.info("No recent trends found. Using generic keywords.")
                         print(f"🔑 Using GENERIC keywords: {keywords_for_generation}")
+                        with st.expander("🔑 Keywords Being Used (Generic)", expanded=False):
+                            st.write(", ".join(keywords_for_generation))
                 else:
                     print(f"🔑 Using GENERIC keywords (trending disabled): {keywords_for_generation}")
+                    with st.expander("🔑 Keywords Being Used (Generic - Trending Disabled)", expanded=False):
+                        st.write(", ".join(keywords_for_generation))
                 
                 with st.spinner("✍️ Crafting your writer's pack..."):
                     package_content = generate_article_package(
