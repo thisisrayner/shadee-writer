@@ -1,8 +1,7 @@
-# Version 2.2.0:
-# - Full implementation of Audience Targeting (Youth vs Young Adults)
-# - Updates system prompt and specific tone instructions based on selected audience
-# - Upgraded to GPT-5 mini (gpt-5-mini-2025-08-07)
+# Version 2.2.1:
+# - Fixed 400 Error: Removed 'temperature' parameter (gpt-5-mini only supports default)
 # Previous versions:
+# - Version 2.2.0: Full implementation of Audience Targeting (Youth vs Young Adults)
 # - Version 2.1.0: Upgraded to GPT-5 mini
 
 """
@@ -190,7 +189,6 @@ You must use the following structure for the first draft.
             {"role": "system", "content": system_role_content},
             {"role": "user", "content": final_prompt}
         ],
-        temperature=0.7,
     )
     return response.choices[0].message.content
 
