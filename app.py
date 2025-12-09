@@ -105,6 +105,17 @@ def run_main_app():
     structure_keys_list = list(STRUCTURE_DETAILS.keys())
     structure_options = structure_keys_list + ["Let AI decide"]
     structure_choice = st.selectbox("Choose an article structure:", options=structure_options, index=len(structure_keys_list))
+    
+    # Audience targeting selector
+    st.markdown("**Target Audience:**")
+    audience = st.radio(
+        "Optimize content for:",
+        options=["Youth (13-18)", "Young Adults (19-30+)"],
+        index=1,  # Default to Young Adults
+        horizontal=True,
+        help="Youth: Gen-Z focused with trendy lingos | Young Adults: Professional yet fresh Millennial tone"
+    )
+    
     use_trending_keywords = st.checkbox("Include trending keywords for SEO", value=True)
     
     add_vertical_space(2)
