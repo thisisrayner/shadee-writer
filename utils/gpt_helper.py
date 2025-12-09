@@ -1,8 +1,8 @@
-# Version 2.0.0:
-# - Upgraded to GPT-5 mini model for enhanced article generation
+# Version 2.0.1:
+# - Fixed KeyError by moving API key initialization from module level to function level
 # Previous versions:
+# - Version 2.0.0: Upgraded to GPT-5 mini model for enhanced article generation
 # - Version 1.9.3: Added a "Punctuation Constraint" to discourage em dashes
-# - Version 1.9.2: Verified and restored the BASE_PROMPT template.
 
 """
 Module: gpt_helper.py
@@ -16,8 +16,8 @@ Purpose: Contains all logic for interacting with the OpenAI GPT API.
 import openai
 import streamlit as st
 
-# --- Initialization ---
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+# API key will be set when needed in the function
+# (Not at module level to avoid import-time errors)
 
 # --- Constants ---
 STRUCTURE_DETAILS = {
