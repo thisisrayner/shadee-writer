@@ -164,7 +164,7 @@ You must use the following structure for the first draft.
     )
     
     response = openai.chat.completions.create(
-        model="gpt-5-mini-2025-08-07",
+        model="gpt-5.1-2025-11-13",
         messages=[
             {"role": "system", "content": "You are a specialized SEO writing assistant for Shadee.Care, creating content for youth."},
             {"role": "user", "content": final_prompt}

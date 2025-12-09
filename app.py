@@ -153,7 +153,7 @@ def run_main_app():
     add_vertical_space(2)
 
     # Validate topic before starting processing
-    col1, col2 = st.columns([3, 1])
+    col1, col2 = st.columns([4, 1])
     with col1:
         if st.button("Generate & Save Writer's Pack", type="primary", disabled=st.session_state.processing):
             if not topic or not topic.strip():
@@ -162,7 +162,7 @@ def run_main_app():
                 start_processing()
     
     with col2:
-        if st.button("🔄 Next Article", help="Clear form and start a new article"):
+        if st.button("↺ Reset", help="Clear form and start a new article"):
             # Clear all generated content and session state
             if 'generated_package' in st.session_state: del st.session_state['generated_package']
             if 'parsed_package' in st.session_state: del st.session_state['parsed_package']
