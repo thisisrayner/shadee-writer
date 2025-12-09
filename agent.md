@@ -43,12 +43,16 @@ We use `st.session_state` extensively to manage complex UI behavior.
 
 -   **Confirmation Dialogs:** A state like `st.session_state.confirm_wordpress_send` is used. The initial button sets this state to `True` and calls `st.rerun()`. The confirmation buttons perform their actions and then set the state to `False`.
 
-### 3. Two-Stage Research and Generation Pipeline (RAG)
+3.  **Audience Targeting & Social Media**:
+    - **Audience Logic**: The audience parameter (Youth vs Young Adults) is passed from `app.py` to both `gemini_helper.py` (rewriting search queries) and `gpt_helper.py` (rewriting system prompts/tones).
+    - **Social Media**: The social media generator is an integral part of the prompt in `gpt_helper.py`. It is parsed as a distinct section in `app.py`. Do not remove this section from the prompt as the parser expects it.
 
-This is the core architectural pattern of the application and must be respected. It separates the tasks of research and writing to improve quality and prevent factual hallucinations.
+4.  **Two-Stage Research and Generation Pipeline (RAG)**:
 
-1.  **Stage 1: The Researcher (`gemini_helper.py`)**: This module is responsible for **all live data gathering**. It takes a topic, uses the Google Gemini API with its built-in web search (`google_search_retrieval` tool), and synthesizes the findings into a factual, unbiased summary. Its sole purpose is to provide a "briefing document."
+    This is the core architectural pattern of the application and must be respected. It separates the tasks of research and writing to improve quality and prevent factual hallucinations.
 
-2.  **Stage 2: The Writer (`gpt_helper.py`)**: This module receives the briefing document from the researcher, along with trending keywords and a chosen structure. Its job is to act as a creative writer, transforming the raw facts into an emotionally resonant article that matches the **Shadee.Care brand voice**.
+    1.  **Stage 1: The Researcher (`gemini_helper.py`)**: This module is responsible for **all live data gathering**. It takes a topic, uses the Google Gemini API with its built-in web search (`google_search_retrieval` tool), and synthesizes the findings into a factual, unbiased summary. Its sole purpose is to provide a "briefing document."
 
-This separation of duties is critical. Do not add web search capabilities to the "Writer" or creative writing tasks to the "Researcher."
+    2.  **Stage 2: The Writer (`gpt_helper.py`)**: This module receives the briefing document from the researcher, along with trending keywords and a chosen structure. Its job is to act as a creative writer, transforming the raw facts into an emotionally resonant article that matches the **Shadee.Care brand voice**.
+
+    This separation of duties is critical. Do not add web search capabilities to the "Writer" or creative writing tasks to the "Researcher."

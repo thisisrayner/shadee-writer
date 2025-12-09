@@ -14,6 +14,8 @@ This Streamlit application is an AI-powered tool designed to assist writers at S
 -   **Secure User Login**: Access is protected by a login screen with role-based passwords.
 -   **Role-Based Permissions**: Features like publishing to WordPress are only visible to users with the "admin" role.
 -   **WordPress Integration**: Send the generated first draft directly to your WordPress site as a 'draft' post with a single click.
+-   **Audience Targeting**: Select between 'Youth (13-18)' and 'Young Adults (19-30+)' to automatically tailor the article's tone, slang, and complexity.
+-   **Social Media Generator**: Automatically generates ready-to-post content for Facebook, Instagram, and TikTok, including hashtags and video scripts.
 -   **Automated Data Logging**: Every generated pack, along with the topic, user, keywords, and sources, is automatically saved to a Google Sheet.
 
 ## 📂 Project Structure
@@ -137,10 +139,11 @@ IGNORE_WHEN_COPYING_END
 This section outlines potential next steps and feature ideas for the project.
 
     Targeted Audience Personas:
+        (Implemented) Writers can now select an audience segment: Youth (13-18) or Young Adults (19-30+).
+        Based on the selection, the assistant automatically adjusts tone, language, slang, and search query parameters.
 
-        Introduce an option for the writer to select an audience segment, such as Younger Youth (13-17) or Young Adults (18-30+).
-
-        Based on the selection, use a different, tailored prompt to adjust tone, language, slang, and content length.
+    Social Media Generator:
+        (Implemented) Automatically generates tailored posts for Facebook, Instagram, and TikTok based on the article content.
 
     Deeper WordPress Integration:
 
