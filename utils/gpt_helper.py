@@ -1,7 +1,7 @@
-# Version 1.9.3:
-# - Added a "Punctuation Constraint" to the BASE_PROMPT to discourage the AI from
-#   using em dashes, promoting a more human-like writing style.
+# Version 2.0.0:
+# - Upgraded to GPT-5 mini model for enhanced article generation
 # Previous versions:
+# - Version 1.9.3: Added a "Punctuation Constraint" to discourage em dashes
 # - Version 1.9.2: Verified and restored the BASE_PROMPT template.
 
 """
@@ -164,7 +164,7 @@ You must use the following structure for the first draft.
     )
     
     response = openai.chat.completions.create(
-        model="gpt-4o-mini",
+        model="gpt-5-mini",
         messages=[
             {"role": "system", "content": "You are a specialized SEO writing assistant for Shadee.Care, creating content for youth."},
             {"role": "user", "content": final_prompt}

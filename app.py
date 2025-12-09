@@ -1,9 +1,10 @@
-# Version 3.6.0:
-# - Search queries and keywords now persist in Debug Information section after generation
-# - Debug info stored in session state and displayed below generated content
+# Version 3.7.0:
+# - Added "Next Article" button to quickly clear form and start new article
+# - Upgraded to GPT-5 mini for better content generation
+# - Added audience targeting selector (Youth vs Young Adults)
 # Previous versions:
-# - Version 3.5.0: Added topic validation with toast message when generate button clicked without topic
-# - Version 3.4.0: Improved error handling for API quota issues with clearer, user-friendly messages.
+# - Version 3.6.0: Search queries and keywords now persist in Debug Information section
+# - Version 3.5.0: Added topic validation with toast message
 
 """
 Module: app.py
@@ -121,11 +122,28 @@ def run_main_app():
     add_vertical_space(2)
 
     # Validate topic before starting processing
-    if st.button("Generate & Save Writer's Pack", type="primary", disabled=st.session_state.processing):
-        if not topic or not topic.strip():
-            st.toast("⚠️ Please enter an article topic first!", icon="⚠️")
-        else:
-            start_processing()
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        if st.button("Generate & Save Writer's Pack", type="primary", disabled=st.session_state.processing):
+            if not topic or not topic.strip():
+                st.toast("⚠️ Please enter an article topic first!", icon="⚠️")
+            else:
+                start_processing()
+    
+    with col2:
+        if st.button("🔄 Next Article", help="Clear form and start a new article"):
+            # Clear all generated content and session state
+            if 'generated_package' in st.session_state: del st.session_state['generated_package']
+            if 'parsed_package' in st.session_state: del st.session_state['parsed_package']
+            if 'research_data' in st.session_state: del st.session_state['research_data']
+            if 'internal_links' in st.session_state: del st.session_state['internal_links']
+            if 'search_queries' in st.session_state: del st.session_state['search_queries']
+            if 'keywords_used' in st.session_state: del st.session_state['keywords_used']
+            if 'topic' in st.session_state: del st.session_state['topic']
+            if 'structure_choice' in st.session_state: del st.session_state['structure_choice']
+            st.session_state.processing = False
+            st.toast("✅ Form cleared! Ready for next article", icon="✅")
+            st.rerun()
 
     if st.session_state.processing:
         try:
