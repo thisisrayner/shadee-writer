@@ -1,9 +1,9 @@
-# Version 3.7.1:
-# - Fixed KeyError when WordPress credentials not configured (now gracefully handled)
+# Version 3.7.2:
+# - Added comprehensive error handling for all utility imports to prevent startup crashes
+# - App now gracefully handles missing Google Sheets, WordPress, Gemini, and search configurations
 # Previous versions:
+# - Version 3.7.1: Fixed KeyError when WordPress credentials not configured
 # - Version 3.7.0: Added "Next Article" button, GPT-5 mini upgrade, audience targeting selector
-# - Version 3.6.0: Search queries and keywords now persist in Debug Information section
-# - Version 3.5.0: Added topic validation with toast message
 
 """
 Module: app.py
@@ -15,19 +15,44 @@ Purpose: The main Streamlit application file for the Shadee.Care Writer's Assist
 # --- Imports ---
 import streamlit as st
 import re
+
+# Core imports (always required)
 from utils.gpt_helper import generate_article_package, STRUCTURE_DETAILS
-from utils.g_sheets import connect_to_sheet, write_to_sheet
-from utils.trend_fetcher import get_trending_keywords
+
+# Optional imports - gracefully handle missing dependencies
+try:
+    from utils.g_sheets import connect_to_sheet, write_to_sheet
+except Exception as e:
+    print(f"Google Sheets integration disabled: {e}")
+    connect_to_sheet = None
+    write_to_sheet = None
+
+try:
+    from utils.trend_fetcher import get_trending_keywords
+except Exception as e:
+    print(f"Trending keywords disabled: {e}")
+    get_trending_keywords = lambda: None
 
 # WordPress is optional - only needed for admin users
 try:
     from utils.wordpress_helper import create_wordpress_draft
-except (KeyError, Exception) as e:
+except Exception as e:
     print(f"WordPress integration disabled: {e}")
-    create_wordpress_draft = None  # Set to None if WordPress not configured
+    create_wordpress_draft = None
 
-from utils.gemini_helper import perform_web_research, generate_internal_search_queries
-from utils.search_engine import google_search
+try:
+    from utils.gemini_helper import perform_web_research, generate_internal_search_queries
+except Exception as e:
+    print(f"Gemini research disabled: {e}")
+    perform_web_research = lambda topic, audience=None: None
+    generate_internal_search_queries = lambda topic: []
+
+try:
+    from utils.search_engine import google_search
+except Exception as e:
+    print(f"Google search disabled: {e}")
+    google_search = lambda query, num_results=5, site_filter=None: []
+
 from streamlit_extras.add_vertical_space import add_vertical_space
 from st_copy_to_clipboard import st_copy_to_clipboard
 
@@ -207,13 +232,17 @@ def run_main_app():
                     st.session_state.structure_choice = structure_choice
 
                     with st.spinner("💾 Saving to Google Sheets..."):
-                        sheet = connect_to_sheet()
-                        if sheet:
-                            sources_list = st.session_state.get('research_data', {}).get('sources', [])
-                            write_to_sheet(
-                                sheet, topic, structure_choice, keywords_for_generation,
-                                package_content, sources_list, st.session_state.username)
-                            st.success("Pack saved successfully to Google Sheets!")
+                        if connect_to_sheet is None or write_to_sheet is None:
+                            st.warning("Google Sheets integration not configured. Skipping save.")
+                            st.info("Generated content is displayed below but not saved to sheets.")
+                        else:
+                            sheet = connect_to_sheet()
+                            if sheet:
+                                sources_list = st.session_state.get('research_data', {}).get('sources', [])
+                                write_to_sheet(
+                                    sheet, topic, structure_choice, keywords_for_generation,
+                                    package_content, sources_list, st.session_state.username)
+                                st.success("Pack saved successfully to Google Sheets!")
                 else:
                     st.error("Failed to generate content.")
         finally:
