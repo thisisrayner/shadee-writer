@@ -1,8 +1,7 @@
-# Version 3.7.0:
-# - Added "Next Article" button to quickly clear form and start new article
-# - Upgraded to GPT-5 mini for better content generation
-# - Added audience targeting selector (Youth vs Young Adults)
+# Version 3.7.1:
+# - Fixed KeyError when WordPress credentials not configured (now gracefully handled)
 # Previous versions:
+# - Version 3.7.0: Added "Next Article" button, GPT-5 mini upgrade, audience targeting selector
 # - Version 3.6.0: Search queries and keywords now persist in Debug Information section
 # - Version 3.5.0: Added topic validation with toast message
 
@@ -19,7 +18,14 @@ import re
 from utils.gpt_helper import generate_article_package, STRUCTURE_DETAILS
 from utils.g_sheets import connect_to_sheet, write_to_sheet
 from utils.trend_fetcher import get_trending_keywords
-from utils.wordpress_helper import create_wordpress_draft
+
+# WordPress is optional - only needed for admin users
+try:
+    from utils.wordpress_helper import create_wordpress_draft
+except (KeyError, Exception) as e:
+    print(f"WordPress integration disabled: {e}")
+    create_wordpress_draft = None  # Set to None if WordPress not configured
+
 from utils.gemini_helper import perform_web_research, generate_internal_search_queries
 from utils.search_engine import google_search
 from streamlit_extras.add_vertical_space import add_vertical_space
