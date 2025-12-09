@@ -65,15 +65,28 @@ def generate_internal_search_queries(topic: str) -> list[str]:
         return [topic]
 
 # --- Existing Main Research Function ---
-def perform_web_research(topic: str) -> dict | None:
+def perform_web_research(topic: str, audience: str = "Young Adults (19-30+)") -> dict | None:
     """
     Orchestrates a robust, multi-step research process to prevent URL hallucination.
+    
+    Args:
+        topic: The article topic to research
+        audience: Target audience (Youth 13-18 or Young Adults 19-30+)
     """
     print("--- Starting D.O.R.A. Lite Research Pipeline ---")
+    print(f"DEBUG: Target audience: {audience}")
     try:
         # --- Step 1: Perform a real Google search to get verified URLs ---
-        print(f"DEBUG: Searching Google for topic: '{topic}'")
-        real_urls = google_search(topic, num_results=5)
+        # Adjust search query based on audience
+        audience_modifier = ""
+        if "Youth" in audience or "13-18" in audience:
+            audience_modifier = " Gen-Z teens young people"
+        elif "Young Adults" in audience or "19-30" in audience:
+            audience_modifier = " millennials young adults"
+        
+        search_query = f"{topic}{audience_modifier}"
+        print(f"DEBUG: Searching Google for topic: '{search_query}'")
+        real_urls = google_search(search_query, num_results=5)
         if not real_urls:
             st.warning("Google search did not return any URLs for this topic.")
             return None
