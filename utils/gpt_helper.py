@@ -1,8 +1,9 @@
-# Version 2.1.0:
-# - Upgraded to GPT-5 mini (gpt-5-mini-2025-08-07) for enhanced article generation
+# Version 2.2.0:
+# - Full implementation of Audience Targeting (Youth vs Young Adults)
+# - Updates system prompt and specific tone instructions based on selected audience
+# - Upgraded to GPT-5 mini (gpt-5-mini-2025-08-07)
 # Previous versions:
-# - Version 2.0.2: Reverted to gpt-4o-mini (gpt-5-mini not yet available)
-# - Version 2.0.1: Fixed KeyError by moving API key initialization from module level to function level
+# - Version 2.1.0: Upgraded to GPT-5 mini
 
 """
 Module: gpt_helper.py
@@ -81,8 +82,8 @@ Your task is to rewrite the 'Live Web Research Summary' above into the 'Context 
 - Natural Placement: Incorporate keywords organically, aligning them with the emotional tone of the article to avoid sounding overly SEO-driven.
 
 📝 Writing Reminders:
+{tone_instructions}
 - Hook variety – never start with “Alright, let’s…” or “Imagine it’s…”. Rotate among: Scene in present tense, a stark question, a surprising stat, or a short dialogue snippet.
-- Tone: Be empathetic, supportive, and conversational, like talking to a close friend.
 - Personal Connection: Always connect the topic to the reader’s own life, making it relatable and reflective.
 - Call to Action: End with a reflective question or a small, empowering step for the reader.
 - **Punctuation Constraint:** Avoid using em dashes (—). Opt for commas, periods, or rephrasing the sentence instead.
@@ -128,10 +129,29 @@ Write a 2-sentence comfort note if the article covers self-harm, ED, severe dist
 - Final Draft checklist: [...]
 """
 
-def generate_article_package(topic, structure_choice, keywords=None, research_context="No live web research was provided."):
+def generate_article_package(topic, structure_choice, keywords=None, research_context="No live web research was provided.", audience="Young Adults (19-30+)"):
     """
     Builds the complete prompt, optionally including keywords and research, and calls the OpenAI API.
     """
+    # Set API key when function is called (not at module import)
+    openai.api_key = st.secrets["OPENAI_API_KEY"]
+    
+    # Define audience-specific tone instructions
+    tone_instructions = ""
+    system_role_content = ""
+    
+    if "Youth" in audience:
+        tone_instructions = """- Tone: Informal, relatable, empathetic, and 'cool' but not cringey. 
+- Language: Use simple language, short sentences, and Gen-z friendly formatting (emojis, bullet points).
+- Avoid: Corporate jargon, overly academic words, or sounding like a 'teacher'.
+- Focus: School stress, peer pressure, identity, and social media struggles."""
+        system_role_content = "You are a specialized SEO writing assistant for Shadee.Care, creating content for Gen-Z youth (13-18)."
+    else:
+        tone_instructions = """- Tone: Professional yet fresh, empathetic, practical, and mature.
+- Language: Clear, concise, and engaging. It's okay to use more complex concepts but explain them well.
+- Focus: Career anxiety, adulting struggles, relationships, and balancing life."""
+        system_role_content = "You are a specialized SEO writing assistant for Shadee.Care, creating content for young adults (19-30+)."
+
     keyword_section = ""
     if keywords:
         keyword_list = ", ".join(keywords)
@@ -160,13 +180,14 @@ You must use the following structure for the first draft.
         topic=topic,
         keyword_section=keyword_section,
         structure_instructions=structure_instructions,
-        research_context=research_context
+        research_context=research_context,
+        tone_instructions=tone_instructions
     )
     
     response = openai.chat.completions.create(
         model="gpt-5-mini",
         messages=[
-            {"role": "system", "content": "You are a specialized SEO writing assistant for Shadee.Care, creating content for youth."},
+            {"role": "system", "content": system_role_content},
             {"role": "user", "content": final_prompt}
         ],
         temperature=0.7,

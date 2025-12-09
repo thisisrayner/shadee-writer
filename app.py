@@ -171,6 +171,7 @@ def run_main_app():
             if 'search_queries' in st.session_state: del st.session_state['search_queries']
             if 'keywords_used' in st.session_state: del st.session_state['keywords_used']
             if 'topic' in st.session_state: del st.session_state['topic']
+            if 'topic_input' in st.session_state: del st.session_state['topic_input']
             if 'structure_choice' in st.session_state: del st.session_state['structure_choice']
             st.session_state.processing = False
             st.toast("✅ Form cleared! Ready for next article", icon="✅")
@@ -188,7 +189,7 @@ def run_main_app():
                 research_context = "No live web research was provided for this topic."
                 
                 with st.spinner("🔬 Performing live web research with Gemini..."):
-                    research_data = perform_web_research(topic)
+                    research_data = perform_web_research(topic, audience=audience)
                 
                 if research_data and research_data.get("summary"):
                     st.success(f"Web research complete! Found {len(research_data.get('sources', []))} relevant sources.")
@@ -219,7 +220,7 @@ def run_main_app():
                 
                 with st.spinner("✍️ Crafting your writer's pack..."):
                     package_content = generate_article_package(
-                        topic, structure_choice, keywords=keywords_for_generation, research_context=research_context)
+                        topic, structure_choice, keywords=keywords_for_generation, research_context=research_context, audience=audience)
                 
                 if package_content:
                     parsed_package = parse_gpt_output(package_content)
