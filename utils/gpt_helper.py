@@ -1,8 +1,8 @@
-# Version 2.0.2:
-# - Reverted to gpt-4o-mini (gpt-5-mini not yet available)
-# - Fixed KeyError by moving API key initialization from module level to function level
+# Version 2.1.0:
+# - Upgraded to GPT-5 mini (gpt-5-mini-2025-08-07) for enhanced article generation
 # Previous versions:
-# - Version 2.0.0: Attempted upgrade to GPT-5 mini model
+# - Version 2.0.2: Reverted to gpt-4o-mini (gpt-5-mini not yet available)
+# - Version 2.0.1: Fixed KeyError by moving API key initialization from module level to function level
 
 """
 Module: gpt_helper.py
@@ -164,7 +164,7 @@ You must use the following structure for the first draft.
     )
     
     response = openai.chat.completions.create(
-        model="gpt-4o-mini",
+        model="gpt-5-mini-2025-08-07",
         messages=[
             {"role": "system", "content": "You are a specialized SEO writing assistant for Shadee.Care, creating content for youth."},
             {"role": "user", "content": final_prompt}
