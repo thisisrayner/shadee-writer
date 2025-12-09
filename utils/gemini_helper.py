@@ -1,6 +1,7 @@
-# Version 2.1.0:
-# - Added a new function 'generate_internal_search_queries' for the internal linking feature.
+# Version 2.2.0:
+# - Upgraded to Gemini 2.0 Flash (gemini-2.0-flash-exp) from deprecated Gemini 1.5 models.
 # Previous versions:
+# - Version 2.1.0: Added a new function 'generate_internal_search_queries' for the internal linking feature.
 # - Version 2.0.0: Complete overhaul to implement a robust search->scrape->summarize pipeline.
 
 """
@@ -51,8 +52,8 @@ def generate_internal_search_queries(topic: str) -> list[str]:
         Your Output: journaling prompts, managing depression, mindfulness techniques, building healthy habits, self-care
         """
 
-        # Using the fast model for this quick, non-critical task
-        model = genai.GenerativeModel(model_name='gemini-1.5-flash-latest')
+        # Using Gemini 2.0 Flash for this quick, non-critical task
+        model = genai.GenerativeModel(model_name='gemini-2.0-flash-exp')
         response = model.generate_content(prompt)
         
         queries_string = response.text.strip()
@@ -106,7 +107,7 @@ def perform_web_research(topic: str) -> dict | None:
         {combined_text}
         """
 
-        model = genai.GenerativeModel(model_name='gemini-1.5-pro-latest')
+        model = genai.GenerativeModel(model_name='gemini-2.0-flash-exp')
         
         response = model.generate_content(summarization_prompt)
         summary = response.text

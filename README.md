@@ -5,7 +5,7 @@ This Streamlit application is an AI-powered tool designed to assist writers at S
 
 ## ✨ Key Features
 
--   **Live Web Research (RAG):** Before writing, the assistant uses Google's Gemini 1.5 Pro to perform live web research, gathering up-to-date facts and statistics to ensure the article is grounded in reality.
+-   **Live Web Research (RAG):** Before writing, the assistant uses Google's Gemini 2.0 Flash to perform live web research, gathering up-to-date facts and statistics to ensure the article is grounded in reality.
 -   **Two-Stage AI Pipeline**:
     1.  **Researcher (Gemini Pro)**: Performs web research and synthesizes findings into a factual summary with verified source URLs.
     2.  **Writer (OpenAI GPT-4o Mini)**: Takes the research, trending keywords, and a chosen structure to craft a high-quality draft in the Shadee.Care brand voice.
