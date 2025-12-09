@@ -1,10 +1,9 @@
-# Version 3.5.0:
-# - Added topic validation with toast message when generate button clicked without topic
-# - Sidebar auto-closes when generation starts for better focus
-# - Enhanced logging for Google search results and keywords
+# Version 3.6.0:
+# - Search queries and keywords now persist in Debug Information section after generation
+# - Debug info stored in session state and displayed below generated content
 # Previous versions:
+# - Version 3.5.0: Added topic validation with toast message when generate button clicked without topic
 # - Version 3.4.0: Improved error handling for API quota issues with clearer, user-friendly messages.
-# - Version 3.3.2: Fixed UI regressions: Restored correct placeholder text and sidebar footer content.
 
 """
 Module: app.py
@@ -225,6 +224,30 @@ def run_main_app():
 
             add_vertical_space(1)
             st_copy_to_clipboard(full_package, "Click here to copy the full output")
+            
+            # Persistent Debug Information Section
+            st.divider()
+            st.subheader("🔍 Debug Information")
+            
+            # Display keywords used
+            if 'keywords_used' in st.session_state:
+                kw_data = st.session_state.keywords_used
+                with st.expander(f"🔑 Keywords Used ({kw_data['type']})", expanded=False):
+                    st.write(", ".join(kw_data['keywords']))
+            
+            # Display all search queries and results
+            if 'search_queries' in st.session_state and st.session_state.search_queries:
+                for idx, search_data in enumerate(st.session_state.search_queries, 1):
+                    query = search_data['query']
+                    results = search_data['results']
+                    count = search_data['count']
+                    
+                    if count > 0:
+                        with st.expander(f"🔍 Search Query #{idx}: '{query}' - Found {count} results", expanded=False):
+                            for result_idx, url in enumerate(results, 1):
+                                st.text(f"{result_idx}. {url}")
+                    else:
+                        st.info(f"🔍 Search Query #{idx}: '{query}' - No results found")
             
             if st.session_state.get("role") == "admin":
                 st.divider()

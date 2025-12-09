@@ -44,13 +44,33 @@ def google_search(query: str, num_results: int = 5, site_filter: str = None) -> 
             # Console logging (for server logs)
             print(f"✅ Google Search SUCCESS: Found {len(results)} results for query: '{query}'")
             print(f"📋 Results: {results}")
-            # UI logging (for users to see in app)
+            
+            # Store in session state for persistent display
+            if 'search_queries' not in st.session_state:
+                st.session_state.search_queries = []
+            st.session_state.search_queries.append({
+                'query': query,
+                'results': results,
+                'count': len(results)
+            })
+            
+            # UI logging (for users to see in app during processing)
             with st.expander(f"🔍 Search Query: '{query}' - Found {len(results)} results", expanded=False):
                 for idx, url in enumerate(results, 1):
                     st.text(f"{idx}. {url}")
             return results
         
         print(f"⚠️ Google Search: No results found for query: '{query}'")
+        
+        # Store empty result in session state
+        if 'search_queries' not in st.session_state:
+            st.session_state.search_queries = []
+        st.session_state.search_queries.append({
+            'query': query,
+            'results': [],
+            'count': 0
+        })
+        
         st.info(f"🔍 Search Query: '{query}' - No results found")
         return []
             
