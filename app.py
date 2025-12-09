@@ -1,7 +1,7 @@
-# Version 3.7.2:
-# - Added comprehensive error handling for all utility imports to prevent startup crashes
-# - App now gracefully handles missing Google Sheets, WordPress, Gemini, and search configurations
+# Version 3.7.3:
+# - UI Polish: Renamed "Generate" button, updated theme to Purple/Blue
 # Previous versions:
+# - Version 3.7.2: Added comprehensive error handling for all utility imports
 # - Version 3.7.1: Fixed KeyError when WordPress credentials not configured
 # - Version 3.7.0: Added "Next Article" button, GPT-5 mini upgrade, audience targeting selector
 
@@ -155,7 +155,7 @@ def run_main_app():
     # Validate topic before starting processing
     col1, col2, col3 = st.columns([2, 1, 7], gap="small")
     with col1:
-        if st.button("Generate & Save Writer's Pack", type="primary", disabled=st.session_state.processing, use_container_width=True):
+        if st.button("Generate", type="primary", disabled=st.session_state.processing, use_container_width=True):
             if not topic or not topic.strip():
                 st.toast("⚠️ Please enter an article topic first!", icon="⚠️")
             else:
