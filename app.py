@@ -245,6 +245,10 @@ def run_main_app():
                                 st.success("Pack saved successfully to Google Sheets!")
                 else:
                     st.error("Failed to generate content.")
+        except Exception as error:
+            # Show the actual error instead of silently failing
+            st.error(f"An error occurred during generation: {str(error)}")
+            st.exception(error)  # Show full traceback for debugging
         finally:
             st.session_state.processing = False
             st.rerun()
