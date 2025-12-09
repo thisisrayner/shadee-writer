@@ -106,7 +106,13 @@ Mention ONE concrete Shadee.Care resource (e.g. Self-Worth Toolkit, Anxiety chec
 🚦 Sensitive Topic Support (Add if Relevant):
 Write a 2-sentence comfort note if the article covers self-harm, ED, severe distress. Include: (i) reassurance they’re not alone, (ii) action step (“reach out to a friend, trusted adult, or find helplines at Shadee.Care/help”). If applicable, go one step further to provide Singapore-specific contacts that can offer support.
 
-🛠️ Final Draft Checklist for Writers (Output relevant ones for user):
+� Social Media Posts:
+Create engaging content for these platforms based on the article:
+- **Facebook:** Engaging question + brief summary + placeholder link.
+- **Instagram:** Visual description (e.g. "Carousel of 3 slides showing...") + engaging caption + 10-15 relevant hashtags.
+- **TikTok:** Hook (0-3s) + Script outline + Call to Action.
+
+�🛠️ Final Draft Checklist for Writers (Output relevant ones for user):
 - Does it feel like a conversation with a friend?
 - Is the emotional thread clear from start to finish?
 - Is there a strong takeaway or reflection at the end?
@@ -125,6 +131,7 @@ Write a 2-sentence comfort note if the article covers self-harm, ED, severe dist
 - Important keywords: [...]
 - Writing Reminders: [...]
 - 1st Draft: [...]
+- Social Media Posts: [...]
 - Final Draft checklist: [...]
 """
 

@@ -66,7 +66,7 @@ def parse_gpt_output(text):
     if not text: return {}
     sections = {
         "Title": None, "Context & Research": None, "Important keywords": None,
-        "Writing Reminders": None, "1st Draft": None, "Final Draft checklist": None
+        "Writing Reminders": None, "1st Draft": None, "Social Media Posts": None, "Final Draft checklist": None
     }
     parsed_data = {}
     current_section_key = None
@@ -266,6 +266,7 @@ def run_main_app():
                 elif "keywords" in header: icon = "🔑"
                 elif "Reminders" in header: icon = "📝"
                 elif "1st Draft" in header: icon = "✍️"
+                elif "Social" in header: icon = "📱"
                 elif "checklist" in header: icon = "✅"
                 with st.expander(f"{icon} {header}", expanded=True):
                     st.markdown(content)
