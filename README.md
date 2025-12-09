@@ -89,6 +89,8 @@ OPENAI_API_KEY = "sk-..."
 API_KEY = "YOUR_GEMINI_API_KEY"
 
 # Google Custom Search (For live research & internal linking)
+# NOTE: This API key is shared with the Shadee Care Social Listening project
+# The free tier allows 100 searches/day across all projects using this key
 [google_search]
 API_KEY = "YOUR_GOOGLE_CLOUD_API_KEY_FOR_SEARCH"
 CSE_ID = "YOUR_CUSTOM_SEARCH_ENGINE_ID"

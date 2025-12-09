@@ -1,8 +1,8 @@
-# Version 1.2.0:
-# - Improved error handling for quota exceeded errors with user-friendly messages and solutions.
+# Version 1.3.0:
+# - Added detailed logging for search queries and results to help with debugging and monitoring.
 # Previous versions:
+# - Version 1.2.0: Improved error handling for quota exceeded errors with user-friendly messages and solutions.
 # - Version 1.1.0: Added an optional 'site_filter' parameter to allow for site-specific searches.
-# - Version 1.0.0: Initial implementation for Google Custom Search API calls.
 
 """
 Module: search_engine.py
@@ -40,7 +40,12 @@ def google_search(query: str, num_results: int = 5, site_filter: str = None) -> 
         res = service.cse().list(q=query, cx=cse_id, num=num_results).execute()
 
         if 'items' in res:
-            return [item['link'] for item in res['items']]
+            results = [item['link'] for item in res['items']]
+            print(f"✅ Google Search SUCCESS: Found {len(results)} results for query: '{query}'")
+            print(f"📋 Results: {results}")
+            return results
+        
+        print(f"⚠️ Google Search: No results found for query: '{query}'")
         return []
             
     except HttpError as e:

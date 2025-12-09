@@ -1,9 +1,10 @@
-# Version 3.4.0:
-# - Improved error handling for API quota issues with clearer, user-friendly messages.
-# - Changed warning to info when web research unavailable to reduce alarm.
+# Version 3.5.0:
+# - Added topic validation with toast message when generate button clicked without topic
+# - Sidebar auto-closes when generation starts for better focus
+# - Enhanced logging for Google search results and keywords
 # Previous versions:
+# - Version 3.4.0: Improved error handling for API quota issues with clearer, user-friendly messages.
 # - Version 3.3.2: Fixed UI regressions: Restored correct placeholder text and sidebar footer content.
-# - Version 3.3.1: Fixed a critical IndentationError.
 
 """
 Module: app.py
@@ -58,12 +59,16 @@ def parse_gpt_output(text):
 
 def start_processing():
     """Callback to start the generation process."""
+    # Validation happens in the button callback now, so just set the flag
     st.session_state.processing = True
     st.session_state.confirm_wordpress_send = False
     if 'generated_package' in st.session_state: del st.session_state['generated_package']
     if 'parsed_package' in st.session_state: del st.session_state['parsed_package']
     if 'research_data' in st.session_state: del st.session_state['research_data']
     if 'internal_links' in st.session_state: del st.session_state['internal_links']
+    
+    # Auto-close sidebar when generation starts
+    st.session_state.sidebar_state = "collapsed"
 
 # --- Main Application Logic ---
 def run_main_app():
@@ -95,7 +100,8 @@ def run_main_app():
     st.header("Step 1: Define Your Article")
     topic = st.text_input(
         "Enter the article topic:",
-        placeholder="e.g., 'Overcoming the fear of failure' or a celebrity profile like 'Zendaya's journey with anxiety'"
+        placeholder="e.g., 'Overcoming the fear of failure' or a celebrity profile like 'Zendaya's journey with anxiety'",
+        key="topic_input"
     )
     structure_keys_list = list(STRUCTURE_DETAILS.keys())
     structure_options = structure_keys_list + ["Let AI decide"]
@@ -104,12 +110,20 @@ def run_main_app():
     
     add_vertical_space(2)
 
-    st.button("Generate & Save Writer's Pack", type="primary", on_click=start_processing, disabled=st.session_state.processing)
+    # Validate topic before starting processing
+    if st.button("Generate & Save Writer's Pack", type="primary", disabled=st.session_state.processing):
+        if not topic or not topic.strip():
+            st.toast("⚠️ Please enter an article topic first!", icon="⚠️")
+        else:
+            start_processing()
 
     if st.session_state.processing:
         try:
-            if not topic:
-                st.warning("Please enter a topic to generate content.")
+            # Topic validation now happens before setting processing=True
+            if not topic or not topic.strip():
+                st.error("Topic is required but missing. This should not happen.")
+                st.session_state.processing = False
+                st.rerun()
             else:
                 research_data = None
                 research_context = "No live web research was provided for this topic."
@@ -131,8 +145,12 @@ def run_main_app():
                     if fetched_keywords:
                         keywords_for_generation = fetched_keywords
                         st.success(f"Incorporated {len(fetched_keywords)} trending keywords.")
+                        print(f"🔑 Using TRENDING keywords: {keywords_for_generation}")
                     else:
                         st.info("No recent trends found. Using generic keywords.")
+                        print(f"🔑 Using GENERIC keywords: {keywords_for_generation}")
+                else:
+                    print(f"🔑 Using GENERIC keywords (trending disabled): {keywords_for_generation}")
                 
                 with st.spinner("✍️ Crafting your writer's pack..."):
                     package_content = generate_article_package(
@@ -264,7 +282,16 @@ def login_screen():
 # --- Main App Router ---
 def main():
     """The main function that routes to login or the app."""
-    st.set_page_config(page_title="Shadee.Care Writer's Assistant", page_icon="🪴", layout="wide")
+    # Initialize sidebar state BEFORE set_page_config
+    if 'sidebar_state' not in st.session_state:
+        st.session_state.sidebar_state = 'auto'
+    
+    st.set_page_config(
+        page_title="Shadee.Care Writer's Assistant", 
+        page_icon="🪴", 
+        layout="wide",
+        initial_sidebar_state=st.session_state.sidebar_state
+    )
 
     if 'authenticated' not in st.session_state: st.session_state.authenticated = False
     if 'username' not in st.session_state: st.session_state.username = ""
