@@ -195,7 +195,9 @@ def perform_web_research(topic: str, audience: str = "Young Adults (19-30+)") ->
                     log_container.text(f"⏭️ Skipping anti-scrape source: {url}")
                     continue
 
-                if len(high_quality_sources) >= target_count: break
+                if len(high_quality_sources) >= target_count:
+                    status_text.success(f"✅ Target of {target_count} high-quality sources met. Stopping scan for this batch.")
+                    break
                 
                 status_text.info(f"📄 Scanning: {url}...")
                 content = scrape_url(url)

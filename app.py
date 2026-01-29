@@ -196,6 +196,10 @@ def run_main_app():
                     st.success(f"Web research complete! Found {len(research_data.get('sources', []))} relevant sources.")
                     research_context = research_data['summary']
                     st.session_state.research_data = research_data
+                    
+                    # DEBUG: Show transparency
+                    with st.expander("🕵️ Debug: View Raw Research Context (Sent to Writer AI)"):
+                        st.text_area("Research Summary Passing to Writer:", value=research_context, height=200, disabled=True)
                 else:
                     st.info("📝 No live research available. Generating article using AI's built-in knowledge.")
                     st.session_state.research_data = {"summary": research_context, "sources": []}
