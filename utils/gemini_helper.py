@@ -136,7 +136,7 @@ def perform_web_research(topic: str, audience: str = "Young Adults (19-30+)") ->
         st.error(f"Missing API key in secrets.toml: {e}")
         return None
     except google_exceptions.ResourceExhausted as e:
-        st.error("Gemini API Error: You've exceeded the request limit. Please wait and try again.")
+        st.error("Research LLM API Error: You've exceeded the request limit. Please wait and try again.")
         return None
     except Exception as e:
         st.error(f"An error occurred during web research: {e}")

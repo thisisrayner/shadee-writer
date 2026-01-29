@@ -188,7 +188,7 @@ def run_main_app():
                 research_data = None
                 research_context = "No live web research was provided for this topic."
                 
-                with st.spinner("🔬 Performing live web research with Gemini..."):
+                with st.spinner("🔬 Performing live web research with AI..."):
                     research_data = perform_web_research(topic, audience=audience)
                 
                 if research_data and research_data.get("summary"):
