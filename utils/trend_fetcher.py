@@ -67,17 +67,30 @@ def get_trending_keywords():
     if cached_keywords_str:
         return [kw.strip() for kw in cached_keywords_str.split(',') if kw.strip()]
 
-    # Status indicator in the main app area (outside of sidebars/spinners for visibility)
+    # Status indicator in the main app area
     status_placeholder = st.empty()
     try:
         status_placeholder.info("🔄 Connecting to 'Shadee Social Master' spreadsheet...")
         scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+        
+        # Check secrets
+        if "gcp_service_account" not in st.secrets:
+            status_placeholder.error("🚨 GCP service account credentials missing from secrets!")
+            return []
+            
         creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scopes)
         client = gspread.authorize(creds)
-        spreadsheet = client.open("Shadee Social Master")
+        
+        try:
+            spreadsheet = client.open("Shadee Social Master")
+        except gspread.exceptions.SpreadsheetNotFound:
+            status_placeholder.error("🚨 'Shadee Social Master' spreadsheet not found! Check sharing permissions.")
+            return []
         
         all_raw_text = []
         thirty_days_ago = datetime.now() - timedelta(days=30)
+        total_rows_scanned = 0
+        successful_sheets = 0
 
         for sheet_name, config in SHEET_CONFIG.items():
             try:
@@ -94,51 +107,60 @@ def get_trending_keywords():
                 
                 keyword_col = config["keyword_col"]
                 if DATE_COLUMN not in df.columns or keyword_col not in df.columns:
-                    st.warning(f"⚠️ Sheet '{sheet_name}' is missing required columns. Skipping.")
+                    st.warning(f"⚠️ Sheet '{sheet_name}' is missing '{DATE_COLUMN}' or '{keyword_col}' columns.")
                     continue
 
-                # Clean and parse dates
-                df[DATE_COLUMN] = pd.to_datetime(df[DATE_COLUMN], errors='coerce', dayfirst=False)
+                # Clean and parse dates - be ultra-robust
+                # We try automatic parsing first, then fallback to common formats
+                df[DATE_COLUMN] = pd.to_datetime(df[DATE_COLUMN], errors='coerce')
+                
+                rows_before = len(df)
                 df = df.dropna(subset=[DATE_COLUMN, keyword_col])
                 df = df[df[keyword_col].str.strip() != '']
                 
                 # Filter for recent data
-                recent_df = df[df[DATE_COLUMN] >= thirty_days_ago].copy() 
-                if recent_df.empty:
-                    continue
-
-                if sheet_name == "Google Trends":
-                    interest_col = config.get("interest_col")
-                    if interest_col in recent_df.columns:
-                        recent_df.loc[:, interest_col] = pd.to_numeric(recent_df[interest_col], errors='coerce').fillna(0)
-                        high_interest_df = recent_df[recent_df[interest_col] > 50]
-                        all_raw_text.extend(high_interest_df[keyword_col].tolist())
+                recent_df = df[df[DATE_COLUMN] >= thirty_days_ago].copy()
+                
+                count = len(recent_df)
+                if count > 0:
+                    successful_sheets += 1
+                    total_rows_scanned += count
+                    
+                    if sheet_name == "Google Trends":
+                        interest_col = config.get("interest_col")
+                        if interest_col in recent_df.columns:
+                            recent_df.loc[:, interest_col] = pd.to_numeric(recent_df[interest_col], errors='coerce').fillna(0)
+                            high_interest_df = recent_df[recent_df[interest_col] > 50]
+                            all_raw_text.extend(high_interest_df[keyword_col].tolist())
+                        else:
+                            all_raw_text.extend(recent_df[keyword_col].tolist())
                     else:
                         all_raw_text.extend(recent_df[keyword_col].tolist())
+                    
+                    status_placeholder.info(f"✅ Collected **{count}** recent rows from **{sheet_name}**.")
                 else:
-                    all_raw_text.extend(recent_df[keyword_col].tolist())
-                
-                status_placeholder.info(f"✅ Collected data from **{sheet_name}**.")
+                    status_placeholder.warning(f"ℹ️ No data from last 30 days in **{sheet_name}** ({rows_before} total rows found).")
+                    
             except gspread.exceptions.WorksheetNotFound:
                 st.warning(f"❌ Worksheet named '{sheet_name}' not found.")
             except Exception as e:
                 st.warning(f"⚠️ Error processing '{sheet_name}': {e}")
 
         if not all_raw_text:
-            status_placeholder.warning("⚠️ No recent trending data found in any sheet.")
+            status_placeholder.error("🚨 No recent trending data found in ANY sheet. Falling back to generic keywords.")
             return []
 
-        status_placeholder.info("🧠 Sending raw data to AI for trend extraction...")
+        status_placeholder.info(f"🧠 Sending {total_rows_scanned} data points to AI for trend extraction...")
         combined_text_block = "\n\n---NEW POST---\n\n".join(map(str, all_raw_text))
         truncated_text = combined_text_block[:MAX_CHARS_FOR_EXTRACTION]
         
         final_keywords = extract_keywords_from_text(truncated_text)
         
         if final_keywords:
-            status_placeholder.success("✨ New trends extracted and cached for today!")
+            status_placeholder.success(f"✨ Success! Extracted {len(final_keywords)} trends from {successful_sheets} sheets.")
             write_keyword_cache(final_keywords)
         else:
-            status_placeholder.error("❌ AI failed to extract keywords from the data.")
+            status_placeholder.error("❌ AI failed to extract keywords from the collected data.")
         
         return sorted(final_keywords)
 

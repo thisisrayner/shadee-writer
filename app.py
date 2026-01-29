@@ -212,7 +212,7 @@ def run_main_app():
                         with st.expander("🔑 Keywords Being Used (Trending)", expanded=False):
                             st.write(", ".join(keywords_for_generation))
                     else:
-                        st.info("No recent trends found. Using generic keywords.")
+                        st.info("ℹ️ No new trends were extracted (using generic keywords). Check the status dashboard above for details.")
                         print(f"🔑 Using GENERIC keywords: {keywords_for_generation}")
                         with st.expander("🔑 Keywords Being Used (Generic)", expanded=False):
                             st.write(", ".join(keywords_for_generation))
