@@ -18,7 +18,12 @@ import streamlit as st
 import re
 
 # Core imports (always required)
-from utils.gpt_helper import generate_article_package, STRUCTURE_DETAILS
+try:
+    from utils.gpt_helper import generate_article_package, STRUCTURE_DETAILS
+except Exception as e:
+    st.error(f"Critical error loading gpt_helper: {e}")
+    st.exception(e)  # This will show the full traceback in the UI
+    st.stop()
 
 # Optional imports - gracefully handle missing dependencies
 try:
