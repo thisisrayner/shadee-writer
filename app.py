@@ -202,7 +202,9 @@ def run_main_app():
                 
                 keywords_for_generation = GENERIC_KEYWORDS
                 if use_trending_keywords:
-                    fetched_keywords = get_trending_keywords()
+                    with st.spinner("📈 Fetching and analyzing latest trends from Google Sheets..."):
+                        fetched_keywords = get_trending_keywords()
+                    
                     if fetched_keywords:
                         keywords_for_generation = fetched_keywords
                         st.success(f"Incorporated {len(fetched_keywords)} trending keywords.")

@@ -1,7 +1,7 @@
-# Version 2.1.2:
-# - Resolved the Pandas SettingWithCopyWarning by using .loc for assignments.
-# Previous versions:
-# - Version 2.1.1: Removed 'Sheet1' from the scan list.
+# Version 3.1.0:
+# - Added granular status updates for each sheet being processed.
+# - Improved date and numeric parsing robustness.
+# - Switched keyword extraction to Gemini 2.5 Flash Lite (Unified platform).
 
 """
 Module: trend_fetcher.py
@@ -12,7 +12,7 @@ Purpose: Implements Stage 1 of the AI pipeline. It fetches raw text data from
 # --- Imports ---
 import streamlit as st
 import gspread
-import openai
+import google.generativeai as genai
 from datetime import datetime, timedelta
 import pandas as pd
 from google.oauth2.service_account import Credentials
@@ -29,8 +29,17 @@ DATE_COLUMN = "Post_dt"
 MAX_CHARS_FOR_EXTRACTION = 200000
 
 def extract_keywords_from_text(text_block):
-    """Uses a fast LLM to read a large block of text and extract key themes."""
+    """Uses a fast LLM (Gemini 2.5 Flash Lite) to extract key themes from raw text."""
     if not text_block: return []
+    
+    # Configure Gemini
+    try:
+        gemini_api_key = st.secrets["google_gemini"]["API_KEY"]
+        genai.configure(api_key=gemini_api_key)
+    except KeyError:
+        st.error("Gemini API key not found in secrets.")
+        return []
+
     try:
         system_prompt = """
         You are an expert data analyst specializing in identifying trends from raw social media text.
@@ -42,15 +51,11 @@ def extract_keywords_from_text(text_block):
         
         Example Output: burnout, mental health, exam stress, anxiety, self-care routines, social pressure
         """
-        response = openai.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": text_block}
-            ],
-            temperature=0.1,
-        )
-        keywords_string = response.choices[0].message.content
+        
+        model = genai.GenerativeModel(model_name='gemini-2.5-flash-lite')
+        response = model.generate_content(f"{system_prompt}\n\nTEXT TO ANALYZE:\n{text_block}")
+        
+        keywords_string = response.text.strip()
         return [kw.strip() for kw in keywords_string.split(',') if kw.strip()]
     except Exception as e:
         st.error(f"Error during AI keyword extraction: {e}")
@@ -62,8 +67,10 @@ def get_trending_keywords():
     if cached_keywords_str:
         return [kw.strip() for kw in cached_keywords_str.split(',') if kw.strip()]
 
-    st.info("No cache found for today. Performing a fresh fetch and analysis...")
+    # Status indicator in the main app area (outside of sidebars/spinners for visibility)
+    status_placeholder = st.empty()
     try:
+        status_placeholder.info("🔄 Connecting to 'Shadee Social Master' spreadsheet...")
         scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
         creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scopes)
         client = gspread.authorize(creds)
@@ -74,59 +81,70 @@ def get_trending_keywords():
 
         for sheet_name, config in SHEET_CONFIG.items():
             try:
+                status_placeholder.info(f"💾 Scanning sheet: **{sheet_name}**...")
                 worksheet = spreadsheet.worksheet(sheet_name)
                 data = worksheet.get_all_values()
-                if len(data) < 2: continue
+                
+                if len(data) < 2:
+                    status_placeholder.info(f"ℹ️ Sheet '{sheet_name}' is empty. Skipping.")
+                    continue
+                    
                 header = data[0]
                 df = pd.DataFrame(data[1:], columns=header)
                 
                 keyword_col = config["keyword_col"]
                 if DATE_COLUMN not in df.columns or keyword_col not in df.columns:
-                    st.warning(f"Sheet '{sheet_name}' is missing '{DATE_COLUMN}' or '{keyword_col}'. Skipping.")
+                    st.warning(f"⚠️ Sheet '{sheet_name}' is missing required columns. Skipping.")
                     continue
 
-                df.dropna(subset=[DATE_COLUMN, keyword_col], inplace=True)
-                df = df[df[keyword_col] != '']
-                df[DATE_COLUMN] = pd.to_datetime(df[DATE_COLUMN], errors='coerce')
-                df.dropna(subset=[DATE_COLUMN], inplace=True)
+                # Clean and parse dates
+                df[DATE_COLUMN] = pd.to_datetime(df[DATE_COLUMN], errors='coerce', dayfirst=True)
+                df = df.dropna(subset=[DATE_COLUMN, keyword_col])
+                df = df[df[keyword_col].str.strip() != '']
                 
-                recent_df = df[df[DATE_COLUMN] >= thirty_days_ago].copy() # Use .copy() to signal intent
-                if recent_df.empty: continue
+                # Filter for recent data
+                recent_df = df[df[DATE_COLUMN] >= thirty_days_ago].copy() 
+                if recent_df.empty:
+                    continue
 
                 if sheet_name == "Google Trends":
                     interest_col = config.get("interest_col")
                     if interest_col in recent_df.columns:
-                        # --- THIS LINE IS CORRECTED ---
-                        # Use .loc to safely modify the DataFrame slice
-                        recent_df.loc[:, interest_col] = pd.to_numeric(recent_df[interest_col], errors='coerce')
-                        
+                        recent_df.loc[:, interest_col] = pd.to_numeric(recent_df[interest_col], errors='coerce').fillna(0)
                         high_interest_df = recent_df[recent_df[interest_col] > 50]
                         all_raw_text.extend(high_interest_df[keyword_col].tolist())
                     else:
                         all_raw_text.extend(recent_df[keyword_col].tolist())
                 else:
                     all_raw_text.extend(recent_df[keyword_col].tolist())
+                
+                status_placeholder.info(f"✅ Collected data from **{sheet_name}**.")
             except gspread.exceptions.WorksheetNotFound:
-                st.warning(f"Worksheet named '{sheet_name}' not found. Skipping.")
+                st.warning(f"❌ Worksheet named '{sheet_name}' not found.")
             except Exception as e:
-                st.warning(f"Could not process sheet '{sheet_name}': {e}")
+                st.warning(f"⚠️ Error processing '{sheet_name}': {e}")
 
         if not all_raw_text:
+            status_placeholder.warning("⚠️ No recent trending data found in any sheet.")
             return []
 
+        status_placeholder.info("🧠 Sending raw data to AI for trend extraction...")
         combined_text_block = "\n\n---NEW POST---\n\n".join(map(str, all_raw_text))
         truncated_text = combined_text_block[:MAX_CHARS_FOR_EXTRACTION]
         
         final_keywords = extract_keywords_from_text(truncated_text)
         
         if final_keywords:
-            st.success("New keywords generated. Writing to cache for future use today.")
+            status_placeholder.success("✨ New trends extracted and cached for today!")
             write_keyword_cache(final_keywords)
+        else:
+            status_placeholder.error("❌ AI failed to extract keywords from the data.")
         
         return sorted(final_keywords)
 
     except Exception as e:
-        st.error(f"A critical error occurred during the fresh keyword fetch: {e}")
+        status_placeholder.error(f"🚨 A critical error occurred during trend fetching: {e}")
         return []
 
 # End of trend_fetcher.py
+
