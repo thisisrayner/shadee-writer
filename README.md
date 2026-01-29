@@ -5,47 +5,41 @@ This Streamlit application is an AI-powered tool designed to assist writers at S
 
 ## ✨ Key Features
 
--   **Live Web Research (RAG):** Before writing, the assistant uses Google's Gemini 2.0 Flash to perform live web research, gathering up-to-date facts and statistics to ensure the article is grounded in reality.
--   **Two-Stage AI Pipeline**:
-    1.  **Researcher (Gemini Pro)**: Performs web research and synthesizes findings into a factual summary with verified source URLs.
-    2.  **Writer (OpenAI GPT-4o Mini)**: Takes the research, trending keywords, and a chosen structure to craft a high-quality draft in the Shadee.Care brand voice.
--   **Automated Internal Link Suggestions**: The assistant uses an AI to generate broad, thematic search queries from the user's specific topic. It then performs a Google site search on `vibe.shadee.care` to find and suggest relevant existing articles for internal linking, boosting on-site SEO.
+-   **Unified AI Pipeline (Google Gemini):**
+    1.  **Researcher (Gemini 2.5 Flash Lite)**: Performs live web research and synthesizes findings into a factual summary with verified source URLs.
+    2.  **Writer (Gemini 3 Flash Preview)**: Takes the research, trending keywords, and a chosen structure to craft a high-quality draft in the Shadee.Care brand voice.
+-   **Live Web Research (RAG):** Before writing, the assistant uses the Researcher AI to perform live web research, gathering up-to-date facts and statistics to ensure the article is grounded in reality.
+-   **Automated Internal Link Suggestions**: The assistant uses the Researcher AI to generate broad, thematic search queries from the user's specific topic. It then performs a Google site search on `vibe.shadee.care` to find and suggest relevant existing articles for internal linking, boosting on-site SEO.
 -   **Trending Keyword Integration**: Optionally integrates with a "Shadee Social Master" Google Sheet to pull trending keywords from various social platforms.
 -   **Secure User Login**: Access is protected by a login screen with role-based passwords.
 -   **Role-Based Permissions**: Features like publishing to WordPress are only visible to users with the "admin" role.
 -   **WordPress Integration**: Send the generated first draft directly to your WordPress site as a 'draft' post with a single click.
 -   **Audience Targeting**: Select between 'Youth (13-18)' and 'Young Adults (19-30+)' to automatically tailor the article's tone, slang, and complexity.
 -   **Social Media Generator**: Automatically generates ready-to-post content for Facebook, Instagram, and TikTok, including hashtags and video scripts.
+-   **Modern Dashboard UI**: A sleek, purple-themed interface with auto-clearing forms and persistent debug information for creators.
 -   **Automated Data Logging**: Every generated pack, along with the topic, user, keywords, and sources, is automatically saved to a Google Sheet.
 
 ## 📂 Project Structure
 
 The project is organized into a main application file and a `utils` directory containing helper modules.
 
-    
-
-IGNORE_WHEN_COPYING_START
-Use code with caution. Markdown
-IGNORE_WHEN_COPYING_END
-
 shadee-writer/
 ├── .streamlit/
-│ └── secrets.toml # Stores API keys and credentials
+│   ├── secrets.toml     # Stores API keys and credentials
+│   └── config.toml      # UI theme configuration (Purple/Blue theme)
 ├── utils/
-│ ├── g_sheets.py # Handles all Google Sheets interactions
-│ ├── gpt_helper.py # Manages the "Writer" AI (OpenAI GPT)
-│ ├── gemini_helper.py # Manages the "Researcher" AI (Google Gemini) & meta-tasks
-│ ├── search_engine.py # Handles Google Custom Search API calls
-│ ├── scraper.py # Fetches and extracts main web page content
-│ ├── trend_fetcher.py # Fetches and pre-processes social media trend data
-│ └── wordpress_helper.py # Handles sending drafts to the WordPress API
-├── app.py # The main Streamlit application file
-├── requirements.txt # Lists all Python package dependencies
-├── README.md # This file
-└── AGENT.md # Onboarding guide for developers and AI agents
-Generated code
+│   ├── g_sheets.py      # Handles all Google Sheets interactions
+│   ├── gpt_helper.py    # Manages the "Writer" AI (Gemini 3 Flash Preview)
+│   ├── gemini_helper.py # Manages the "Researcher" AI (Gemini 2.5 Flash Lite)
+│   ├── search_engine.py # Handles Google Custom Search API calls
+│   ├── scraper.py       # Fetches and extracts main web page content
+│   ├── trend_fetcher.py # Fetches and pre-processes trend data
+│   └── wordpress_helper.py # Handles WordPress API integration
+├── app.py               # The main Streamlit application file
+├── requirements.txt     # Lists all Python package dependencies
+├── README.md            # This file
+└── AGENT.md             # Guide for agents and developers
 
-      
 ## 🚀 Setup and Installation
 
 ### 1. Clone the Repository & Set Up Environment
@@ -56,43 +50,26 @@ cd shadee-writer
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
+```
 
-    
+### 2. Configure Credentials (.streamlit/secrets.toml)
 
-IGNORE_WHEN_COPYING_START
-Use code with caution.
-IGNORE_WHEN_COPYING_END
-2. Configure Credentials (.streamlit/secrets.toml)
-
-Create a .streamlit/secrets.toml file. For deployment, copy its contents into the Streamlit Cloud secrets manager.
+Create a `.streamlit/secrets.toml` file. For deployment, copy its contents into the Streamlit Cloud secrets manager.
 
 You will need:
+1.  **Google AI (Gemini) API Key**: Powers both the Researcher and Writer.
+2.  **Google Cloud Search Credentials**: API Key and Search Engine ID (CSE_ID).
+3.  **Google Service Account**: For logging data to Google Sheets.
+4.  **WordPress Credentials**: (Optional) For sending drafts directly to the blog.
 
-    An OpenAI API Key.
-
-    A Google AI (Gemini) API Key.
-
-    A Google Cloud API Key and a Custom Search Engine (CSE) ID for the search feature.
-
-    A Google Cloud Service Account JSON key for Google Sheets.
-
-    A WordPress username and a generated Application Password.
-
-Generated toml
-
-      
+```toml
 # .streamlit/secrets.toml
 
-# OpenAI API Key (The "Writer")
-OPENAI_API_KEY = "sk-..."
-
-# Google Gemini API Key (The "Researcher")
+# Google Gemini API Key (Powers both Writer & Researcher)
 [google_gemini]
 API_KEY = "YOUR_GEMINI_API_KEY"
 
 # Google Custom Search (For live research & internal linking)
-# NOTE: This API key is shared with the Shadee Care Social Listening project
-# The free tier allows 100 searches/day across all projects using this key
 [google_search]
 API_KEY = "YOUR_GOOGLE_CLOUD_API_KEY_FOR_SEARCH"
 CSE_ID = "YOUR_CUSTOM_SEARCH_ENGINE_ID"
@@ -101,49 +78,36 @@ CSE_ID = "YOUR_CUSTOM_SEARCH_ENGINE_ID"
 [gcp_service_account]
 # ... (your full GCP service account JSON content)
 
-# WordPress Credentials
+# WordPress Credentials (Optional)
 [wordpress]
 WP_URL = "https://your-wordpress-site.com"
 WP_USERNAME = "your_wordpress_username"
-WP_APP_PASSWORD = "your generated application password"
+WP_APP_PASSWORD = "your_generated_application_password"
 
-# Application Authentication (using dotted key format for lists)
+# Application Authentication
 [[authentication.users]]
-username = "rayner"
-password = "your_admin_password"
+username = "admin"
+password = "..."
 role = "admin"
 
 [[authentication.users]]
 username = "writer"
-password = "your_writer_password"
+password = "..."
 role = "writer"
+```
 
-    
-
-IGNORE_WHEN_COPYING_START
-Use code with caution. Toml
-IGNORE_WHEN_COPYING_END
 ▶️ Running the Application
-Generated bash
-
-      
+```bash
 streamlit run app.py
+```
 
-    
+## 🔮 Future Enhancements (Implemented)
 
-IGNORE_WHEN_COPYING_START
-Use code with caution. Bash
-IGNORE_WHEN_COPYING_END
-🔮 Future Enhancements
+-   **Targeted Audience Personas**: Tailors content for Youth (13-18) or Young Adults (19-30+).
+-   **Social Media Ideas Generator**: Ready-to-use snippets for Facebook, Instagram, and TikTok.
+-   **Model-Agnostic Logging**: system logs use "LLM" terminology to allow for easy model swapping in the future.
+-   **Unified AI Platform**: Entire pipeline consolidated on Google's high-performance Gemini models.
 
-This section outlines potential next steps and feature ideas for the project.
-
-    Targeted Audience Personas:
-        (Implemented) Writers can now select an audience segment: Youth (13-18) or Young Adults (19-30+).
-        Based on the selection, the assistant automatically adjusts tone, language, slang, and search query parameters.
-
-    Social Media Generator:
-        (Implemented) Automatically generates tailored posts for Facebook, Instagram, and TikTok based on the article content.
 
     Deeper WordPress Integration:
 

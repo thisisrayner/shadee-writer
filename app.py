@@ -8,8 +8,9 @@
 """
 Module: app.py
 Purpose: The main Streamlit application file for the Shadee.Care Writer's Assistant.
-- Renders a login screen to control access.
-- After authentication, renders the main application UI with role-based features.
+- Renders a multi-step workflow for creating "Writer's Packs".
+- Supports audience targeting, social media post generation, and trending keyword integration.
+- Features a modern, purple-themed UI and persists research/logs across generations.
 """
 
 # --- Imports ---
@@ -66,7 +67,7 @@ def parse_gpt_output(text):
     if not text: return {}
     sections = {
         "Title": None, "Context & Research": None, "Important keywords": None,
-        "Writing Reminders": None, "1st Draft": None, "Social Media Posts": None, "Final Draft checklist": None
+        "Writing Reminders": None, "1st Draft": None, "Social Media Ideas": None, "Final Draft checklist": None
     }
     parsed_data = {}
     current_section_key = None
@@ -218,6 +219,7 @@ def run_main_app():
                     with st.expander("🔑 Keywords Being Used (Generic - Trending Disabled)", expanded=False):
                         st.write(", ".join(keywords_for_generation))
                 
+                st.info("🧠 Prompt sent! Writer AI is thinking...")
                 with st.spinner("✍️ Crafting your writer's pack..."):
                     package_content = generate_article_package(
                         topic, structure_choice, keywords=keywords_for_generation, research_context=research_context, audience=audience)

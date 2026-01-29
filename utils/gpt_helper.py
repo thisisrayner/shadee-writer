@@ -7,10 +7,10 @@
 
 """
 Module: gpt_helper.py
-Purpose: Contains all logic for interacting with the Writer LLM.
+Purpose: Contains all logic for interacting with the Writer LLM (Gemini 3 Flash Preview).
 - Defines article structures and prompt templates.
-- Constructs the final prompt based on user input.
-- Calls the LLM and returns the generated content.
+- Constructs the final prompt based on user input (topic, style, audience).
+- Calls the Gemini API and returns the generated content package.
 """
 
 # --- Imports ---
@@ -104,7 +104,7 @@ Mention ONE concrete Shadee.Care resource (e.g. Self-Worth Toolkit, Anxiety chec
 🚦 Sensitive Topic Support (Add if Relevant):
 Write a 2-sentence comfort note if the article covers self-harm, ED, severe distress. Include: (i) reassurance they’re not alone, (ii) action step (“reach out to a friend, trusted adult, or find helplines at Shadee.Care/help”). If applicable, go one step further to provide Singapore-specific contacts that can offer support.
 
- Social Media Posts:
+ Social Media Ideas:
 Create engaging content for these platforms based on the article:
 - **Facebook:** Engaging question + brief summary + placeholder link.
 - **Instagram:** Visual description (e.g. "Carousel of 3 slides showing...") + engaging caption + 10-15 relevant hashtags.
@@ -129,7 +129,7 @@ Create engaging content for these platforms based on the article:
 - Important keywords: [...]
 - Writing Reminders: [...]
 - 1st Draft: [...]
-- Social Media Posts: [...]
+- Social Media Ideas: [...]
 - Final Draft checklist: [...]
 """
 

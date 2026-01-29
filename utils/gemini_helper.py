@@ -7,9 +7,9 @@
 
 """
 Module: gemini_helper.py
-Purpose: Handles the "research" stage of the content pipeline by orchestrating
-         an explicit search, scrape, and summarization process. Also provides
-         helper functions for AI-driven meta-tasks like query generation.
+Purpose: Handles the "research" stage of the content pipeline using Gemini 2.5 Flash Lite.
+- Orchestrates an explicit search, scrape, and summarization process.
+- Provides helper functions for AI-driven meta-tasks like internal search query generation.
 """
 
 # --- Imports ---
