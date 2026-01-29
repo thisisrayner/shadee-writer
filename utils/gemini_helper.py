@@ -73,8 +73,8 @@ def verify_article_relevance(content: str, topic: str) -> tuple[int, str]:
         text = response.text.strip()
         
         # Simple parsing
-        score_match = re.search(r"SCORE:\s*(\d+)", text, re.IGNORE_CASE)
-        rationale_match = re.search(r"RATIONALE:\s*(.*)", text, re.IGNORE_CASE)
+        score_match = re.search(r"SCORE:\s*(\d+)", text, re.IGNORECASE)
+        rationale_match = re.search(r"RATIONALE:\s*(.*)", text, re.IGNORECASE)
         
         score = int(score_match.group(1)) if score_match else 0
         rationale = rationale_match.group(1).strip() if rationale_match else "No rationale provided."

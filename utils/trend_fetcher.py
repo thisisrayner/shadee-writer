@@ -98,7 +98,7 @@ def get_trending_keywords():
                     continue
 
                 # Clean and parse dates
-                df[DATE_COLUMN] = pd.to_datetime(df[DATE_COLUMN], errors='coerce', dayfirst=True)
+                df[DATE_COLUMN] = pd.to_datetime(df[DATE_COLUMN], errors='coerce', dayfirst=False)
                 df = df.dropna(subset=[DATE_COLUMN, keyword_col])
                 df = df[df[keyword_col].str.strip() != '']
                 
