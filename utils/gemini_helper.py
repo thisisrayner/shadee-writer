@@ -52,10 +52,10 @@ def verify_article_relevance(content: str, topic: str) -> tuple[int, str]:
         Analyze the following article content and determine its relevance and quality for a writer 
         crafting a detailed piece on the topic: "{topic}".
         
-        Assign a relevance score from 0 to 10.
-        7-10: Highly relevant, factual, and informative.
-        4-6: Somewhat relevant but may be high-level or tangentially related.
-        0-3: Irrelevant, low quality, or purely promotional.
+        Assign a relevance score from 0 to 5.
+        4-5: Highly relevant, factual, and informative.
+        3: Relevant and useful context.
+        0-2: Irrelevant, low quality, or purely promotional.
 
         Return your response in exactly this format:
         SCORE: [number]
@@ -79,7 +79,7 @@ def verify_article_relevance(content: str, topic: str) -> tuple[int, str]:
         score = int(score_match.group(1)) if score_match else 0
         rationale = rationale_match.group(1).strip() if rationale_match else "No rationale provided."
         
-        return min(max(score, 0), 10), rationale
+        return min(max(score, 0), 5), rationale
     except Exception as e:
         error_msg = str(e)[:100]
         print(f"DEBUG: Relevance verification failed: {e}")
@@ -204,11 +204,11 @@ def perform_web_research(topic: str, audience: str = "Young Adults (19-30+)") ->
                     score, rationale = verify_article_relevance(content, topic)
                     
                     # Display result in UI
-                    color = "green" if score >= 7 else "orange" if score >= 4 else "red"
-                    icon = "✅" if score >= 7 else "⚠️" if score >= 4 else "❌"
-                    log_container.markdown(f"{icon} **[{score}/10]** | {url}  \n *Rationale: {rationale}*")
+                    color = "green" if score >= 3 else "orange" if score >= 2 else "red"
+                    icon = "✅" if score >= 3 else "⚠️" if score >= 2 else "❌"
+                    log_container.markdown(f"{icon} **[{score}/5]** | {url}  \n *Rationale: {rationale}*")
                     
-                    if score >= 7:
+                    if score >= 3:
                         high_quality_sources.append({'url': url, 'content': content, 'score': score})
                         # Update progress
                         progress_bar.progress(len(high_quality_sources) / target_count)
@@ -227,7 +227,7 @@ def perform_web_research(topic: str, audience: str = "Young Adults (19-30+)") ->
 
     # Final Summarization
     status_text.info("📝 Synthesizing research into a summary...")
-    combined_text = "\n\n".join([f"--- SOURCE: {s['url']} (Score: {s['score']}/10) ---\n{s['content']}" for s in high_quality_sources])
+    combined_text = "\n\n".join([f"--- SOURCE: {s['url']} (Score: {s['score']}/5) ---\n{s['content']}" for s in high_quality_sources])
     
     summarization_prompt = f"""
     You are a research summarizer. Based ONLY on the provided source texts below,
