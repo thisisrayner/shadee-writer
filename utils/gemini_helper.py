@@ -1,6 +1,7 @@
-# Version 2.2.1:
-# - Upgraded Researcher to Gemini 3 Flash Preview (gemini-3-flash-preview).
+# Version 2.2.2:
+# - Upgraded Researcher to Gemini 2.5 Flash Lite (gemini-2.5-flash-lite).
 # Previous versions:
+# - Version 2.2.1: Upgraded Researcher to Gemini 3 Flash Preview
 # - Version 2.2.0: Upgraded to Gemini 2.0 Flash
 # - Version 2.1.0: Added a new function 'generate_internal_search_queries'
 
@@ -52,8 +53,8 @@ def generate_internal_search_queries(topic: str) -> list[str]:
         Your Output: journaling prompts, managing depression, mindfulness techniques, building healthy habits, self-care
         """
 
-        # Using Gemini 3 Flash for this quick, non-critical task
-        model = genai.GenerativeModel(model_name='gemini-3-flash-preview')
+        # Using fast LLM for this quick, non-critical task
+        model = genai.GenerativeModel(model_name='gemini-2.5-flash-lite')
         response = model.generate_content(prompt)
         
         queries_string = response.text.strip()
@@ -105,8 +106,8 @@ def perform_web_research(topic: str, audience: str = "Young Adults (19-30+)") ->
             # Just return with empty summary and the URLs we attempted
             return {"summary": "Live web research was unavailable. Article will be generated using AI's built-in knowledge.", "sources": real_urls}
 
-        # --- Step 3: Summarize the scraped text with Gemini ---
-        print("DEBUG: Content scraped. Sending to Gemini for summarization...")
+        # --- Step 3: Summarize the scraped text with LLM ---
+        print("DEBUG: Content scraped. Sending to LLM for summarization...")
         combined_text = "\n\n".join(scraped_content)
         
         gemini_api_key = st.secrets["google_gemini"]["API_KEY"]
@@ -121,7 +122,7 @@ def perform_web_research(topic: str, audience: str = "Young Adults (19-30+)") ->
         {combined_text}
         """
 
-        model = genai.GenerativeModel(model_name='gemini-3-flash-preview')
+        model = genai.GenerativeModel(model_name='gemini-2.5-flash-lite')
         
         response = model.generate_content(summarization_prompt)
         summary = response.text
