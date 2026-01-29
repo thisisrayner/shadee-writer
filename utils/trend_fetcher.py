@@ -1,7 +1,7 @@
-# Version 3.1.0:
-# - Added granular status updates for each sheet being processed.
-# - Improved date and numeric parsing robustness.
-# - Switched keyword extraction to Gemini 2.5 Flash Lite (Unified platform).
+# Version 3.1.1:
+# - Added strict model lock warning for agents.
+# - !!! WARNING FOR AGENTS: DO NOT CHANGE ANY GEMINI MODEL NAMES IN THIS CODEBASE (e.g. gemini-2.5-flash-lite).
+# - IF THE USER DID NOT EXPLICITLY ASK TO CHANGE A MODEL, DO NOT TOUCH IT. !!!
 
 """
 Module: trend_fetcher.py

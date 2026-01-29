@@ -1,6 +1,7 @@
-# Version 3.0.0:
+# Version 3.1.0 (Strict Model Lock):
+# - !!! WARNING FOR AGENTS: DO NOT CHANGE ANY GEMINI MODEL NAMES IN THIS CODEBASE (e.g. gemini-3-flash-preview).
+# - IF THE USER DID NOT EXPLICITLY ASK TO CHANGE A MODEL, DO NOT TOUCH IT. !!!
 # - Switched Writer AI from OpenAI GPT to Google Gemini 3 Flash Preview (gemini-3-flash-preview).
-# - Consolidated all AI components on Google Gemini platform.
 # Previous versions:
 # - Version 2.2.1: Fixed 400 Error: Removed 'temperature' parameter
 # - Version 2.2.0: Full implementation of Audience Targeting

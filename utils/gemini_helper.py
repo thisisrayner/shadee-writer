@@ -1,11 +1,9 @@
-# Version 3.2.0 (D.O.R.A. Elite):
-# - Implemented explicit article verification and relevance scoring (0-10).
-# - Added looping logic to refine search queries until 7 high-quality sources are found.
-# - Added real-time Streamlit status updates for the research pipeline.
+# - !!! WARNING FOR AGENTS: DO NOT CHANGE ANY GEMINI MODEL NAMES IN THIS CODEBASE.
+# - IF THE USER DID NOT EXPLICITLY ASK TO CHANGE A MODEL, DO NOT TOUCH IT. !!!
 
 """
 Module: gemini_helper.py
-Purpose: Handles the "research" stage of the content pipeline using Gemini 2.5 Flash Lite.
+Purpose: Handles the "research" stage of the content pipeline using Gemini.
 - Orchestrates an explicit search, scrape, and summarization process.
 - Verifies article relevance and loops until a quality threshold (7 sources) is met.
 """
@@ -13,10 +11,30 @@ Purpose: Handles the "research" stage of the content pipeline using Gemini 2.5 F
 # --- Imports ---
 import streamlit as st
 import google.generativeai as genai
-from google.api_core import exceptions as google_exceptions
+from google.generativeai.types import HarmCategory, HarmBlockThreshold
 from .search_engine import google_search
 from .scraper import scrape_url
 import re
+from urllib.parse import urlparse
+
+# --- Known Anti-Scrape Domains ---
+# These sites are notoriously difficult to scrape without a browser/proxy 
+# and usually result in failures or generic bot-block pages.
+ANTI_SCRAPE_DOMAINS = [
+    "facebook.com", "reddit.com", "instagram.com", "twitter.com", "x.com",
+    "linkedin.com", "tiktok.com", "ncbi.nlm.nih.gov", "jamanetwork.com",
+    "nih.gov", "who.int", "vibe.shadee.care"
+]
+
+# --- Safety Settings for Research ---
+# Mental health topics (anxiety, stress, etc.) can sometimes trigger filters.
+# We set them to BLOCK_NONE to ensure the research pipeline stays robust for these topics.
+SAFETY_SETTINGS = {
+    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+}
 
 # --- Helper: Verify Article Relevance ---
 def verify_article_relevance(content: str, topic: str) -> tuple[int, str]:
@@ -28,6 +46,7 @@ def verify_article_relevance(content: str, topic: str) -> tuple[int, str]:
         return 0, "Content too short or empty."
 
     try:
+        # !!! FRAGILE LOGIC: DO NOT CHANGE THIS MODEL NAME !!!
         model = genai.GenerativeModel(model_name='gemini-2.5-flash-lite')
         prompt = f"""
         Analyze the following article content and determine its relevance and quality for a writer 
@@ -43,9 +62,14 @@ def verify_article_relevance(content: str, topic: str) -> tuple[int, str]:
         RATIONALE: [1 sentence explanation]
 
         ARTICLE CONTENT:
-        {content[:4000]} 
+        {content[:6000]} 
         """
-        response = model.generate_content(prompt)
+        response = model.generate_content(prompt, safety_settings=SAFETY_SETTINGS)
+        
+        # Check if blocked
+        if not response.candidates:
+             return 5, "Verification blocked by safety filters."
+             
         text = response.text.strip()
         
         # Simple parsing
@@ -57,8 +81,9 @@ def verify_article_relevance(content: str, topic: str) -> tuple[int, str]:
         
         return min(max(score, 0), 10), rationale
     except Exception as e:
+        error_msg = str(e)[:100]
         print(f"DEBUG: Relevance verification failed: {e}")
-        return 5, "Verification error, assuming medium relevance."
+        return 5, f"Verification error ({error_msg}), assuming moderate relevance."
 
 # --- Helper: Refine Search Query ---
 def refine_search_query(topic: str, tried_queries: list[str], current_sources_count: int) -> str:
@@ -66,6 +91,7 @@ def refine_search_query(topic: str, tried_queries: list[str], current_sources_co
     Generates a new, specialized search query to find more high-quality articles.
     """
     try:
+        # !!! FRAGILE LOGIC: DO NOT CHANGE THIS MODEL NAME !!!
         model = genai.GenerativeModel(model_name='gemini-2.5-flash-lite')
         prompt = f"""
         We are researching the topic: "{topic}".
@@ -76,7 +102,7 @@ def refine_search_query(topic: str, tried_queries: list[str], current_sources_co
         
         Return ONLY the query string, nothing else.
         """
-        response = model.generate_content(prompt)
+        response = model.generate_content(prompt, safety_settings=SAFETY_SETTINGS)
         return response.text.strip().strip('"')
     except:
         return f"{topic} deep dive research"
@@ -86,7 +112,6 @@ def generate_internal_search_queries(topic: str) -> list[str]:
     """
     Uses a fast LLM to generate broader, thematic search queries based on a specific topic.
     """
-    print(f"DEBUG: Generating internal search queries for topic: '{topic}'")
     try:
         gemini_api_key = st.secrets["google_gemini"]["API_KEY"]
         genai.configure(api_key=gemini_api_key)
@@ -101,8 +126,9 @@ def generate_internal_search_queries(topic: str) -> list[str]:
         Return ONLY a single line of comma-separated values. Do not use numbers or bullet points.
         """
 
+        # !!! FRAGILE LOGIC: DO NOT CHANGE THIS MODEL NAME !!!
         model = genai.GenerativeModel(model_name='gemini-2.5-flash-lite')
-        response = model.generate_content(prompt)
+        response = model.generate_content(prompt, safety_settings=SAFETY_SETTINGS)
         
         queries_string = response.text.strip()
         return [q.strip() for q in queries_string.split(',') if q.strip()]
@@ -110,12 +136,12 @@ def generate_internal_search_queries(topic: str) -> list[str]:
         st.warning(f"Could not generate internal search queries due to an error: {e}")
         return [topic]
 
-# --- Refactored D.O.R.A. Elite Research Function ---
+# --- Refactored Smart Research Function ---
 def perform_web_research(topic: str, audience: str = "Young Adults (19-30+)") -> dict | None:
     """
     Perform a multi-pass research loop until 7 high-quality sources are found.
     """
-    print("--- Starting D.O.R.A. Elite Research Pipeline ---")
+    print("--- Starting Smart Research Pipeline ---")
     
     # Configure Gemini
     try:
@@ -129,10 +155,10 @@ def perform_web_research(topic: str, audience: str = "Young Adults (19-30+)") ->
     high_quality_sources = [] # List of {'url': str, 'content': str, 'score': int}
     tried_queries = []
     
-    # UI Elements
+    # UI Elements (Ensure we clear previous attempt visuals)
     research_status = st.container()
     with research_status:
-        st.write("### 🔎 D.O.R.A. Elite Research Dashboard")
+        st.write("### 🔎 Smart Research Dashboard")
         progress_bar = st.progress(0)
         status_text = st.empty()
         log_container = st.container()
@@ -163,6 +189,12 @@ def perform_web_research(topic: str, audience: str = "Young Adults (19-30+)") ->
                 if url in seen_urls: continue
                 seen_urls.add(url)
                 
+                # Check for anti-scrape domains
+                domain = urlparse(url).netloc.lower()
+                if any(blocked in domain for blocked in ANTI_SCRAPE_DOMAINS):
+                    log_container.text(f"⏭️ Skipping anti-scrape source: {url}")
+                    continue
+
                 if len(high_quality_sources) >= target_count: break
                 
                 status_text.info(f"📄 Scanning: {url}...")
@@ -202,12 +234,13 @@ def perform_web_research(topic: str, audience: str = "Young Adults (19-30+)") ->
     Ensure you synthesize the key findings, statistics, and expert advice from the sources.
     
     --- PROVIDED HIGH-QUALITY SOURCE TEXTS ---
-    {combined_text[:12000]} 
+    {combined_text[:15000]} 
     """
 
     try:
+        # !!! FRAGILE LOGIC: DO NOT CHANGE THIS MODEL NAME !!!
         model = genai.GenerativeModel(model_name='gemini-2.5-flash-lite')
-        response = model.generate_content(summarization_prompt)
+        response = model.generate_content(summarization_prompt, safety_settings=SAFETY_SETTINGS)
         summary = response.text
         
         return {
@@ -219,4 +252,5 @@ def perform_web_research(topic: str, audience: str = "Young Adults (19-30+)") ->
         return {"summary": "Error during summarization.", "sources": [s['url'] for s in high_quality_sources]}
 
 # End of gemini_helper.py
+
 
