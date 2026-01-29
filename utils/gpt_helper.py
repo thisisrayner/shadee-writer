@@ -1,23 +1,21 @@
-# Version 2.2.1:
-# - Fixed 400 Error: Removed 'temperature' parameter (gpt-5-mini only supports default)
+# Version 3.0.0:
+# - Switched Writer AI from OpenAI GPT to Google Gemini 3 Flash Preview (gemini-3-flash-preview).
+# - Consolidated all AI components on Google Gemini platform.
 # Previous versions:
-# - Version 2.2.0: Full implementation of Audience Targeting (Youth vs Young Adults)
-# - Version 2.1.0: Upgraded to GPT-5 mini
+# - Version 2.2.1: Fixed 400 Error: Removed 'temperature' parameter
+# - Version 2.2.0: Full implementation of Audience Targeting
 
 """
 Module: gpt_helper.py
-Purpose: Contains all logic for interacting with the OpenAI GPT API.
+Purpose: Contains all logic for interacting with the Writer LLM.
 - Defines article structures and prompt templates.
 - Constructs the final prompt based on user input.
-- Calls the OpenAI API and returns the generated content.
+- Calls the LLM and returns the generated content.
 """
 
 # --- Imports ---
-import openai
 import streamlit as st
-
-# API key will be set when needed in the function
-# (Not at module level to avoid import-time errors)
+import google.generativeai as genai
 
 # --- Constants ---
 STRUCTURE_DETAILS = {
@@ -106,13 +104,13 @@ Mention ONE concrete Shadee.Care resource (e.g. Self-Worth Toolkit, Anxiety chec
 🚦 Sensitive Topic Support (Add if Relevant):
 Write a 2-sentence comfort note if the article covers self-harm, ED, severe distress. Include: (i) reassurance they’re not alone, (ii) action step (“reach out to a friend, trusted adult, or find helplines at Shadee.Care/help”). If applicable, go one step further to provide Singapore-specific contacts that can offer support.
 
-� Social Media Posts:
+ Social Media Posts:
 Create engaging content for these platforms based on the article:
 - **Facebook:** Engaging question + brief summary + placeholder link.
 - **Instagram:** Visual description (e.g. "Carousel of 3 slides showing...") + engaging caption + 10-15 relevant hashtags.
 - **TikTok:** Hook (0-3s) + Script outline + Call to Action.
 
-�🛠️ Final Draft Checklist for Writers (Output relevant ones for user):
+🛠️ Final Draft Checklist for Writers (Output relevant ones for user):
 - Does it feel like a conversation with a friend?
 - Is the emotional thread clear from start to finish?
 - Is there a strong takeaway or reflection at the end?
@@ -137,10 +135,15 @@ Create engaging content for these platforms based on the article:
 
 def generate_article_package(topic, structure_choice, keywords=None, research_context="No live web research was provided.", audience="Young Adults (19-30+)"):
     """
-    Builds the complete prompt, optionally including keywords and research, and calls the OpenAI API.
+    Builds the complete prompt and calls the Writer LLM (Gemini 3 Flash Preview).
     """
-    # Set API key when function is called (not at module import)
-    openai.api_key = st.secrets["OPENAI_API_KEY"]
+    # Configure Gemini
+    try:
+        gemini_api_key = st.secrets["google_gemini"]["API_KEY"]
+        genai.configure(api_key=gemini_api_key)
+    except KeyError:
+        st.error("Gemini API key not found in secrets.")
+        return None
     
     # Define audience-specific tone instructions
     tone_instructions = ""
@@ -182,21 +185,22 @@ You must use the following structure for the first draft.
 {selected_structure_detail}
 """
 
-    final_prompt = BASE_PROMPT.format(
+    final_prompt = f"{system_role_content}\n\n{BASE_PROMPT.format(
         topic=topic,
         keyword_section=keyword_section,
         structure_instructions=structure_instructions,
         research_context=research_context,
         tone_instructions=tone_instructions
-    )
+    )}"
     
-    response = openai.chat.completions.create(
-        model="gpt-5-mini",
-        messages=[
-            {"role": "system", "content": system_role_content},
-            {"role": "user", "content": final_prompt}
-        ],
-    )
-    return response.choices[0].message.content
+    # Call Gemini model
+    print(f"DEBUG: Content generation starting for topic: '{topic}' using Writer LLM")
+    try:
+        model = genai.GenerativeModel(model_name='gemini-3-flash-preview')
+        response = model.generate_content(final_prompt)
+        return response.text
+    except Exception as e:
+        st.error(f"An error occurred during article generation: {e}")
+        return None
 
 # End of gpt_helper.py
