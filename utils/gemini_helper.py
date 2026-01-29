@@ -156,9 +156,8 @@ def perform_web_research(topic: str, audience: str = "Young Adults (19-30+)") ->
     tried_queries = []
     
     # UI Elements (Ensure we clear previous attempt visuals)
-    research_status = st.container()
-    with research_status:
-        st.write("### 🔎 Smart Research Dashboard")
+    # UI Elements (Encapsulated in Expander for cleaner UI)
+    with st.expander("🔎 Smart Research Dashboard (Scraping & Scoring)", expanded=True):
         progress_bar = st.progress(0)
         status_text = st.empty()
         log_container = st.container()
