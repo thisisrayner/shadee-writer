@@ -1,8 +1,8 @@
-# Version 2.2.0:
-# - Upgraded to Gemini 2.0 Flash (gemini-2.0-flash-exp) from deprecated Gemini 1.5 models.
+# Version 2.2.1:
+# - Upgraded Researcher to Gemini 3 Flash Preview (gemini-3-flash-preview).
 # Previous versions:
-# - Version 2.1.0: Added a new function 'generate_internal_search_queries' for the internal linking feature.
-# - Version 2.0.0: Complete overhaul to implement a robust search->scrape->summarize pipeline.
+# - Version 2.2.0: Upgraded to Gemini 2.0 Flash
+# - Version 2.1.0: Added a new function 'generate_internal_search_queries'
 
 """
 Module: gemini_helper.py
@@ -52,8 +52,8 @@ def generate_internal_search_queries(topic: str) -> list[str]:
         Your Output: journaling prompts, managing depression, mindfulness techniques, building healthy habits, self-care
         """
 
-        # Using Gemini 2.0 Flash for this quick, non-critical task
-        model = genai.GenerativeModel(model_name='gemini-2.0-flash-exp')
+        # Using Gemini 3 Flash for this quick, non-critical task
+        model = genai.GenerativeModel(model_name='gemini-3-flash-preview')
         response = model.generate_content(prompt)
         
         queries_string = response.text.strip()
@@ -121,7 +121,7 @@ def perform_web_research(topic: str, audience: str = "Young Adults (19-30+)") ->
         {combined_text}
         """
 
-        model = genai.GenerativeModel(model_name='gemini-2.0-flash-exp')
+        model = genai.GenerativeModel(model_name='gemini-3-flash-preview')
         
         response = model.generate_content(summarization_prompt)
         summary = response.text
