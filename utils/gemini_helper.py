@@ -163,7 +163,7 @@ def perform_web_research(topic: str, audience: str = "Young Adults (19-30+)") ->
         log_container = st.container()
 
     attempts = 0
-    max_attempts = 3
+    max_attempts = 5
     target_count = 7
     
     audience_modifier = ""
@@ -180,12 +180,14 @@ def perform_web_research(topic: str, audience: str = "Young Adults (19-30+)") ->
         status_text.info(f"🚀 Attempt {attempts}/{max_attempts}: Searching for **'{current_query}'**...")
         
         # Search
-        found_urls = google_search(current_query, num_results=10)
+        found_urls = google_search(current_query, num_results=15)
         if not found_urls:
             log_container.warning(f"⚠️ No new results for: {current_query}")
         else:
             for url in found_urls:
-                if url in seen_urls: continue
+                if url in seen_urls:
+                    st.toast(f"Duplicate found: {url}", icon="⏭️")
+                    continue
                 seen_urls.add(url)
                 
                 # Check for anti-scrape domains
