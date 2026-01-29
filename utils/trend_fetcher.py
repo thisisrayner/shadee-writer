@@ -68,14 +68,14 @@ def get_trending_keywords():
         return [kw.strip() for kw in cached_keywords_str.split(',') if kw.strip()]
 
     # Status indicator in the main app area
-    status_placeholder = st.empty()
+    status_placeholder = st.expander("📊 Trend Fetcher Diagnostics", expanded=True)
     try:
         status_placeholder.info("🔄 Connecting to 'Shadee Social Master' spreadsheet...")
         scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
         
         # Check secrets
         if "gcp_service_account" not in st.secrets:
-            status_placeholder.error("🚨 GCP service account credentials missing from secrets!")
+            st.error("🚨 GCP service account credentials missing from secrets!")
             return []
             
         creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scopes)
@@ -84,7 +84,7 @@ def get_trending_keywords():
         try:
             spreadsheet = client.open("Shadee Social Master")
         except gspread.exceptions.SpreadsheetNotFound:
-            status_placeholder.error("🚨 'Shadee Social Master' spreadsheet not found! Check sharing permissions.")
+            st.error("🚨 'Shadee Social Master' spreadsheet not found! Check sharing permissions.")
             return []
         
         all_raw_text = []
@@ -99,7 +99,7 @@ def get_trending_keywords():
                 data = worksheet.get_all_values()
                 
                 if len(data) < 2:
-                    status_placeholder.info(f"ℹ️ Sheet '{sheet_name}' is empty. Skipping.")
+                    status_placeholder.warning(f"ℹ️ Sheet '{sheet_name}' is empty. Skipping.")
                     continue
                     
                 header = data[0]
@@ -107,11 +107,10 @@ def get_trending_keywords():
                 
                 keyword_col = config["keyword_col"]
                 if DATE_COLUMN not in df.columns or keyword_col not in df.columns:
-                    st.warning(f"⚠️ Sheet '{sheet_name}' is missing '{DATE_COLUMN}' or '{keyword_col}' columns.")
+                    status_placeholder.warning(f"⚠️ Sheet '{sheet_name}' is missing '{DATE_COLUMN}' or '{keyword_col}' columns.")
                     continue
 
                 # Clean and parse dates - be ultra-robust
-                # We try automatic parsing first, then fallback to common formats
                 df[DATE_COLUMN] = pd.to_datetime(df[DATE_COLUMN], errors='coerce')
                 
                 rows_before = len(df)
@@ -137,17 +136,17 @@ def get_trending_keywords():
                     else:
                         all_raw_text.extend(recent_df[keyword_col].tolist())
                     
-                    status_placeholder.info(f"✅ Collected **{count}** recent rows from **{sheet_name}**.")
+                    status_placeholder.success(f"✅ Collected **{count}** recent rows from **{sheet_name}**.")
                 else:
                     status_placeholder.warning(f"ℹ️ No data from last 30 days in **{sheet_name}** ({rows_before} total rows found).")
                     
             except gspread.exceptions.WorksheetNotFound:
-                st.warning(f"❌ Worksheet named '{sheet_name}' not found.")
+                status_placeholder.warning(f"❌ Worksheet named '{sheet_name}' not found.")
             except Exception as e:
-                st.warning(f"⚠️ Error processing '{sheet_name}': {e}")
+                status_placeholder.warning(f"⚠️ Error processing '{sheet_name}': {e}")
 
         if not all_raw_text:
-            status_placeholder.error("🚨 No recent trending data found in ANY sheet. Falling back to generic keywords.")
+            st.error("🚨 No recent trending data found in ANY sheet. Falling back to generic keywords.")
             return []
 
         status_placeholder.info(f"🧠 Sending {total_rows_scanned} data points to AI for trend extraction...")
@@ -157,15 +156,15 @@ def get_trending_keywords():
         final_keywords = extract_keywords_from_text(truncated_text)
         
         if final_keywords:
-            status_placeholder.success(f"✨ Success! Extracted {len(final_keywords)} trends from {successful_sheets} sheets.")
+            st.success(f"✨ Success! Extracted {len(final_keywords)} trends from {successful_sheets} sheets.")
             write_keyword_cache(final_keywords)
         else:
-            status_placeholder.error("❌ AI failed to extract keywords from the collected data.")
+            st.error("❌ AI failed to extract keywords from the collected data.")
         
         return sorted(final_keywords)
 
     except Exception as e:
-        status_placeholder.error(f"🚨 A critical error occurred during trend fetching: {e}")
+        st.error(f"🚨 A critical error occurred during trend fetching: {e}")
         return []
 
 # End of trend_fetcher.py
