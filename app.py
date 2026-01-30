@@ -56,6 +56,7 @@ except Exception as e:
     google_search = lambda query, num_results=5, site_filter=None, ui_container=None: []
 
 from streamlit_extras.add_vertical_space import add_vertical_space
+from st_copy_to_clipboard import st_copy_to_clipboard
 
 # --- Constants ---
 GENERIC_KEYWORDS = ["therapy", "anxiety", "depression", "self-care", "wellness", "mental health"]
@@ -96,6 +97,12 @@ def parse_gpt_output(text):
 
 def start_processing():
     """Callback to start the generation process."""
+    # Validate topic from session state directly
+    topic = st.session_state.get("topic_input", "").strip()
+    if not topic:
+        st.toast("⚠️ Please enter an article topic first!", icon="⚠️")
+        return
+
     st.session_state.processing = True
     st.session_state.confirm_wordpress_send = False
     # Clear previous results
@@ -105,6 +112,22 @@ def start_processing():
     
     # Auto-close sidebar
     st.session_state.sidebar_state = "collapsed"
+
+def reset_app():
+    """Callback to reset the app state."""
+    if 'generated_package' in st.session_state: del st.session_state['generated_package']
+    if 'parsed_package' in st.session_state: del st.session_state['parsed_package']
+    if 'research_data' in st.session_state: del st.session_state['research_data']
+    if 'internal_links' in st.session_state: del st.session_state['internal_links']
+    if 'search_queries' in st.session_state: del st.session_state['search_queries']
+    if 'keywords_used' in st.session_state: del st.session_state['keywords_used']
+    if 'topic' in st.session_state: del st.session_state['topic']
+    # Do not clear topic_input to match prev behavior, or do? User said "Clear form".
+    if 'topic_input' in st.session_state: del st.session_state['topic_input']
+    if 'structure_choice' in st.session_state: del st.session_state['structure_choice']
+    if 'research_logs' in st.session_state: del st.session_state['research_logs']
+    st.session_state.processing = False
+    st.toast("✅ Form cleared! Ready for next article", icon="✅")
 
 # --- Main Application Logic ---
 def run_main_app():
@@ -205,31 +228,13 @@ def run_main_app():
         
         add_vertical_space(2)
 
-        # Validate topic before starting processing
+        # Buttons with on_click callbacks
         col1, col2, col3 = st.columns([2, 1, 7], gap="small")
         with col1:
-            if st.button("Generate", type="primary", disabled=st.session_state.processing, use_container_width=True):
-                if not topic or not topic.strip():
-                    st.toast("⚠️ Please enter an article topic first!", icon="⚠️")
-                else:
-                    start_processing()
+            st.button("Generate", type="primary", disabled=st.session_state.processing, use_container_width=True, on_click=start_processing)
         
         with col2:
-            if st.button("↺ Reset", help="Clear form and start a new article", use_container_width=True, disabled=st.session_state.processing):
-                # Clear all generated content and session state
-                if 'generated_package' in st.session_state: del st.session_state['generated_package']
-                if 'parsed_package' in st.session_state: del st.session_state['parsed_package']
-                if 'research_data' in st.session_state: del st.session_state['research_data']
-                if 'internal_links' in st.session_state: del st.session_state['internal_links']
-                if 'search_queries' in st.session_state: del st.session_state['search_queries']
-                if 'keywords_used' in st.session_state: del st.session_state['keywords_used']
-                if 'topic' in st.session_state: del st.session_state['topic']
-                if 'topic_input' in st.session_state: del st.session_state['topic_input']
-                if 'structure_choice' in st.session_state: del st.session_state['structure_choice']
-                if 'research_logs' in st.session_state: del st.session_state['research_logs']
-                st.session_state.processing = False
-                st.toast("✅ Form cleared! Ready for next article", icon="✅")
-                st.rerun()
+            st.button("↺ Reset", help="Clear form and start a new article", use_container_width=True, disabled=st.session_state.processing, on_click=reset_app)
 
         if st.session_state.processing:
             try:
@@ -368,9 +373,8 @@ def run_main_app():
     
                 add_vertical_space(1)
                 
-                # Simple Copy Block (Native Streamlit with Copy Button)
-                st.markdown("### 📋 Copy Full Article")
-                st.code(full_package, language="markdown")
+                # Simple Copy Button (No duplicate text container)
+                st_copy_to_clipboard(full_package, "📋 Copy Article to Clipboard")
                 
                 # Persistent Debug Information Section (Moved to Logs Tab)
                 tab_logs.divider()
