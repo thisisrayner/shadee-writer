@@ -171,7 +171,8 @@ def perform_web_research(topic: str, audience: str = "Young Adults (19-30+)", st
     with ui_parent:
         st.markdown("### 🔎 Smart Research Dashboard")
         progress_bar = st.progress(0)
-        status_text = st.empty()
+        progress_bar = st.progress(0)
+        # STATUS TEXT REMOVED - Using log_message for persistence instead
         log_container = st.container()
 
     def log_message(msg, level="info", icon=""):
@@ -205,7 +206,7 @@ def perform_web_research(topic: str, audience: str = "Young Adults (19-30+)", st
     while len(high_quality_sources) < target_count and attempts < max_attempts:
         attempts += 1
         tried_queries.append(current_query)
-        status_text.info(f"🚀 Attempt {attempts}/{max_attempts}: Searching for **'{current_query}'**...")
+        log_message(f"🚀 Attempt {attempts}/{max_attempts}: Searching for **'{current_query}'**...", level="info")
         
         # Search
         found_urls = google_search(current_query, num_results=10, ui_container=log_container)
@@ -225,10 +226,10 @@ def perform_web_research(topic: str, audience: str = "Young Adults (19-30+)", st
                     continue
 
                 if len(high_quality_sources) >= target_count:
-                    status_text.success(f"✅ Target of {target_count} high-quality sources met. Stopping scan for this batch.")
+                    log_message(f"✅ Target of {target_count} high-quality sources met. Stopping scan for this batch.", level="success")
                     break
                 
-                status_text.info(f"📄 Scanning: {url}...")
+                log_message(f"📄 Scanning: {url}...", level="info")
                 content = scrape_url(url)
                 if content:
                     score, rationale = verify_article_relevance(content, topic)
@@ -247,17 +248,16 @@ def perform_web_research(topic: str, audience: str = "Young Adults (19-30+)", st
 
         # If we still need more, refine the query
         if len(high_quality_sources) < target_count and attempts < max_attempts:
-            status_text.info("🤔 Knowledge gap detected. Asking AI to refine research query...")
+            log_message("🤔 Knowledge gap detected. Asking AI to refine research query...", level="info")
             current_query = refine_search_query(topic, tried_queries, len(high_quality_sources))
 
-    status_text.success(f"🏁 Research wrap-up: Found {len(high_quality_sources)} high-quality sources.")
-    log_history.append({"message": f"🏁 Research wrap-up: Found {len(high_quality_sources)} high-quality sources.", "level": "success"})
+    log_message(f"🏁 Research wrap-up: Found {len(high_quality_sources)} high-quality sources.", level="success")
     
     if not high_quality_sources:
         return {"summary": "Live web research was unavailable. Article will be generated using AI's built-in knowledge.", "sources": list(seen_urls), "logs": log_history}
 
     # Final Summarization
-    status_text.info("📝 Synthesizing research into a summary...")
+    log_message("📝 Synthesizing research into a summary...", level="info")
     combined_text = "\n\n".join([f"--- SOURCE: {s['url']} (Score: {s['score']}/5) ---\n{s['content']}" for s in high_quality_sources])
     
     summarization_prompt = f"""

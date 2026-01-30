@@ -335,14 +335,14 @@ def run_main_app():
                 add_vertical_space(1)
                 st_copy_to_clipboard(full_package, "Click here to copy the full output")
                 
-                # Persistent Debug Information Section
-                st.divider()
-                st.subheader("🔍 Debug Information")
+                # Persistent Debug Information Section (Moved to Logs Tab)
+                tab_logs.divider()
+                tab_logs.subheader("🔍 Debug Information")
                 
                 # Display keywords used
                 if 'keywords_used' in st.session_state:
                     kw_data = st.session_state.keywords_used
-                    with st.expander(f"🔑 Keywords Used ({kw_data['type']})", expanded=False):
+                    with tab_logs.expander(f"🔑 Keywords Used ({kw_data['type']})", expanded=False):
                         st.write(", ".join(kw_data['keywords']))
                 
                 # Display all search queries and results
@@ -353,11 +353,11 @@ def run_main_app():
                         count = search_data['count']
                         
                         if count > 0:
-                            with st.expander(f"🔍 Search Query #{idx}: '{query}' - Found {count} results", expanded=False):
+                            with tab_logs.expander(f"🔍 Search Query #{idx}: '{query}' - Found {count} results", expanded=False):
                                 for result_idx, url in enumerate(results, 1):
                                     st.text(f"{result_idx}. {url}")
                         else:
-                            st.info(f"🔍 Search Query #{idx}: '{query}' - No results found")
+                            tab_logs.info(f"🔍 Search Query #{idx}: '{query}' - No results found")
                 
                 if st.session_state.get("role") == "admin":
                     st.divider()
