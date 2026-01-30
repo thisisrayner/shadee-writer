@@ -16,6 +16,7 @@ import streamlit as st
 import re
 import extra_streamlit_components as stx
 import datetime
+import time
 
 # Core imports (always required)
 from utils.gpt_helper import generate_article_package, STRUCTURE_DETAILS
@@ -472,6 +473,8 @@ def login_screen():
                         expires = datetime.datetime.now() + datetime.timedelta(days=1)
                         # REUSE the existing manager instance
                         cookie_manager.set("shadee_auth_token", username_input, expires_at=expires)
+                        # Give the frontend time to process the cookie set event before rerunning
+                        time.sleep(0.5)
                     
                     st.rerun()
                 else:
