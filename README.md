@@ -1,126 +1,82 @@
-      
-# 🪴 Shadee.Care Writer's Assistant
+# 🪴 Shadee.Care Writer's Assistant 2.0
 
-This Streamlit application is an AI-powered tool designed to assist writers at Shadee.Care. It helps create emotionally resonant, culturally relevant, and SEO-optimized articles for a youth audience (13-30 years old) by performing live web research and generating comprehensive "Writer's Packs."
+An AI-powered creative suite designed to assist Shadee.Care writers in crafting emotionally resonant, culturally relevant articles for youth audiences. It combines live web research, trend analysis, and advanced LLM drafting into a unified workflow.
 
 ## ✨ Key Features
 
--   **Unified AI Pipeline (Google Gemini):**
-    1.  **Researcher (Gemini 2.5 Flash Lite)**: Performs live web research and synthesizes findings into a factual summary with verified source URLs.
-    2.  **Writer (Gemini 3 Flash Preview)**: Takes the research, trending keywords, and a chosen structure to craft a high-quality draft in the Shadee.Care brand voice.
--   **Live Web Research (RAG):** Before writing, the assistant uses the Researcher AI to perform live web research, gathering up-to-date facts and statistics to ensure the article is grounded in reality.
--   **Automated Internal Link Suggestions**: The assistant uses the Researcher AI to generate broad, thematic search queries from the user's specific topic. It then performs a Google site search on `vibe.shadee.care` to find and suggest relevant existing articles for internal linking, boosting on-site SEO.
--   **Trending Keyword Integration**: Optionally integrates with a "Shadee Social Master" Google Sheet to pull trending keywords from various social platforms.
--   **Secure User Login**: Access is protected by a login screen with role-based passwords.
--   **Role-Based Permissions**: Features like publishing to WordPress are only visible to users with the "admin" role.
--   **WordPress Integration**: Send the generated first draft directly to your WordPress site as a 'draft' post with a single click.
--   **Audience Targeting**: Select between 'Youth (13-18)' and 'Young Adults (19-30+)' to automatically tailor the article's tone, slang, and complexity.
--   **Social Media Generator**: Automatically generates ready-to-post content for Facebook, Instagram, and TikTok, including hashtags and video scripts.
--   **Modern Dashboard UI**: A sleek, purple-themed interface with auto-clearing forms and persistent debug information for creators.
--   **Automated Data Logging**: Every generated pack, along with the topic, user, keywords, and sources, is automatically saved to a Google Sheet.
+### 🧠 Advanced AI Pipeline
+-   **Writer AI (`gemini-3-flash-preview`)**: Generates high-quality, empathetic drafts tailored to specific audience segments.
+-   **Researcher AI (`gemini-2.5-flash-lite`)**: Performs live, multi-pass web research to ground articles in current facts and statistics.
+-   **"The Laureate's Canvas"**: A hidden, advanced creative mode for Nobel-quality writing (activated via "Let AI decide" structure).
+
+### 🎯 Dynamic Audience Targeting
+-   **Youth (13-18)**: "Peer-to-peer" tone, controlled Gen-Z slang, direct and relatable.
+-   **Young Adults (19-30+)**: Professional yet fresh, "big sibling/mentor" tone.
+
+### 🛠️ Production-Ready UI
+-   **Persistent Login**: Secure, cookie-based authentication keeps you logged in for 24 hours.
+-   **Tabbed Interface**:
+    -   **📝 Article Writer**: Clean focus mode for drafting.
+    -   **⚙️ Research Logs**: Dedicated debugging tab for transparency into the AI's research process.
+-   **Smart UX**:
+    -   **Processing Lock**: Form inputs disable automatically to prevent errors during generation.
+    -   **Spinner-First Loading**: Smooth authentication checks without UI flashing.
+    -   **Context Transparency**: Inspect the raw research summary sent to the Writer AI.
+
+### 🚀 Optimization & SEO
+-   **Trending Keywords**: Integrates with "Shadee Social Master" to pull live trends.
+-   **Internal Linking**: Auto-suggests relevant `vibe.shadee.care` articles to boost SEO.
+-   **Social Media Generator**: Instantly creates ready-to-post snippets for Instagram, TikTok, and Facebook.
 
 ## 📂 Project Structure
 
-The project is organized into a main application file and a `utils` directory containing helper modules.
-
+```text
 shadee-writer/
 ├── .streamlit/
-│   ├── secrets.toml     # Stores API keys and credentials
-│   └── config.toml      # UI theme configuration (Purple/Blue theme)
+│   ├── secrets.toml     # API keys & Auth users
+│   └── config.toml      # Theme settings
 ├── utils/
-│   ├── g_sheets.py      # Handles all Google Sheets interactions
-│   ├── gpt_helper.py    # Manages the "Writer" AI (Gemini 3 Flash Preview)
-│   ├── gemini_helper.py # Manages the "Researcher" AI (Gemini 2.5 Flash Lite)
-│   ├── search_engine.py # Handles Google Custom Search API calls
-│   ├── scraper.py       # Fetches and extracts main web page content
-│   ├── trend_fetcher.py # Fetches and pre-processes trend data
-│   └── wordpress_helper.py # Handles WordPress API integration
-├── app.py               # The main Streamlit application file
-├── requirements.txt     # Lists all Python package dependencies
-├── README.md            # This file
-└── AGENT.md             # Guide for agents and developers
+│   ├── gpt_helper.py    # Writer AI & Prompts
+│   ├── gemini_helper.py # Researcher AI & Scraper
+│   ├── app.py           # Main Application (Entry Point)
+│   └── ...              # Other helpers (Sheets, WordPress)
+├── app.py               # Main Application Logic
+└── requirements.txt     # Python Dependencies
+```
 
-## 🚀 Setup and Installation
+## 🚀 Setup
 
-### 1. Clone the Repository & Set Up Environment
-
+### 1. Install Dependencies
 ```bash
-git clone <your-repository-url>
-cd shadee-writer
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 2. Configure Credentials (.streamlit/secrets.toml)
-
-Create a `.streamlit/secrets.toml` file. For deployment, copy its contents into the Streamlit Cloud secrets manager.
-
-You will need:
-1.  **Google AI (Gemini) API Key**: Powers both the Researcher and Writer.
-2.  **Google Cloud Search Credentials**: API Key and Search Engine ID (CSE_ID).
-3.  **Google Service Account**: For logging data to Google Sheets.
-4.  **WordPress Credentials**: (Optional) For sending drafts directly to the blog.
+### 2. Configure Secrets
+Create `.streamlit/secrets.toml` with the following:
 
 ```toml
-# .streamlit/secrets.toml
-
-# Google Gemini API Key (Powers both Writer & Researcher)
 [google_gemini]
-API_KEY = "YOUR_GEMINI_API_KEY"
+API_KEY = "..."
 
-# Google Custom Search (For live research & internal linking)
 [google_search]
-API_KEY = "YOUR_GOOGLE_CLOUD_API_KEY_FOR_SEARCH"
-CSE_ID = "YOUR_CUSTOM_SEARCH_ENGINE_ID"
+API_KEY = "..."
+CSE_ID = "..."
 
-# Google Cloud Service Account Credentials (for Google Sheets)
-[gcp_service_account]
-# ... (your full GCP service account JSON content)
-
-# WordPress Credentials (Optional)
-[wordpress]
-WP_URL = "https://your-wordpress-site.com"
-WP_USERNAME = "your_wordpress_username"
-WP_APP_PASSWORD = "your_generated_application_password"
-
-# Application Authentication
+[authentication]
+# Define valid users
 [[authentication.users]]
 username = "admin"
 password = "..."
 role = "admin"
-
-[[authentication.users]]
-username = "writer"
-password = "..."
-role = "writer"
 ```
 
-▶️ Running the Application
+### 3. Run
 ```bash
 streamlit run app.py
 ```
 
-## 🔮 Future Enhancements (Implemented)
-
--   **Targeted Audience Personas**: Tailors content for Youth (13-18) or Young Adults (19-30+).
--   **Social Media Ideas Generator**: Ready-to-use snippets for Facebook, Instagram, and TikTok.
--   **Model-Agnostic Logging**: system logs use "LLM" terminology to allow for easy model swapping in the future.
--   **Unified AI Platform**: Entire pipeline consolidated on Google's high-performance Gemini models.
-
-
-    Deeper WordPress Integration:
-
-        Add UI elements to select the post category or add tags before sending the draft to WordPress.
-
-        Explore functionality to automatically set a featured image.
-
-    Enhanced Research Control:
-
-        Add an optional text area for writers to provide specific research questions to guide the Gemini researcher.
-
-        Implement a "Skip Live Research" checkbox for purely creative topics.
-
-    Cache Management UI:
-
-        Add a button in the sidebar (visible to admins) to manually clear today's keyword cache.
+## 🔄 Recent Changelog (v2.0 Refactor)
+-   **Persistence**: Implemented `extra-streamlit-components` CookieManager.
+-   **Stability**: Fixed race conditions in UI state and log persistence.
+-   **Clarity**: Simplified copy buttons and status messages.
+-   **Performance**: Upgraded to latest Gemini Flash models.
