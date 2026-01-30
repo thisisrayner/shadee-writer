@@ -229,7 +229,7 @@ def run_main_app():
         add_vertical_space(2)
 
         # Buttons with on_click callbacks
-        col1, col2, col3 = st.columns([2, 1, 7], gap="small")
+        col1, col2, col3 = st.columns([2, 2, 6], gap="small")
         with col1:
             st.button("Generate", type="primary", disabled=st.session_state.processing, use_container_width=True, on_click=start_processing)
         

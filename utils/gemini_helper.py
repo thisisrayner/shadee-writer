@@ -211,7 +211,7 @@ def perform_web_research(topic: str, audience: str = "Young Adults (19-30+)", st
         # Search
         found_urls = google_search(current_query, num_results=10, ui_container=log_container)
         if not found_urls:
-            log_container.warning(f"⚠️ No new results for: {current_query}")
+            log_message(f"⚠️ No new results for: {current_query}", level="warning")
         else:
             for url in found_urls:
                 if url in seen_urls:
@@ -222,7 +222,7 @@ def perform_web_research(topic: str, audience: str = "Young Adults (19-30+)", st
                 # Check for anti-scrape domains
                 domain = urlparse(url).netloc.lower()
                 if any(blocked in domain for blocked in ANTI_SCRAPE_DOMAINS):
-                    log_container.text(f"⏭️ Skipping anti-scrape source: {url}")
+                    log_message(f"⏭️ Skipping anti-scrape source: {url}", level="info")
                     continue
 
                 if len(high_quality_sources) >= target_count:
@@ -237,14 +237,14 @@ def perform_web_research(topic: str, audience: str = "Young Adults (19-30+)", st
                     # Display result in UI
                     color = "green" if score >= 3 else "orange" if score >= 2 else "red"
                     icon = "✅" if score >= 3 else "⚠️" if score >= 2 else "❌"
-                    log_container.markdown(f"{icon} **[{score}/5]** | {url}  \n *Rationale: {rationale}*")
+                    log_message(f"{icon} **[{score}/5]** | {url}  \n *Rationale: {rationale}*", level="markdown")
                     
                     if score >= 3:
                         high_quality_sources.append({'url': url, 'content': content, 'score': score})
                         # Update progress
                         progress_bar.progress(len(high_quality_sources) / target_count)
                 else:
-                    log_container.text(f"🚫 Could not scrape: {url}")
+                    log_message(f"🚫 Could not scrape: {url}", level="info")
 
         # If we still need more, refine the query
         if len(high_quality_sources) < target_count and attempts < max_attempts:
