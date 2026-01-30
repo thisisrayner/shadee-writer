@@ -266,7 +266,7 @@ def perform_web_research(topic: str, audience: str = "Young Adults (19-30+)", st
     Ensure you synthesize the key findings, statistics, and expert advice from the sources.
     
     --- PROVIDED HIGH-QUALITY SOURCE TEXTS ---
-    {combined_text[:15000]} 
+    {combined_text[:120000]} 
     """
 
     try:

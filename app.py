@@ -223,12 +223,12 @@ def run_main_app():
                         st.session_state.research_logs = research_data['logs']
 
                     if research_data and research_data.get("summary"):
-                        st.success(f"Web research complete! Found {len(research_data.get('sources', []))} relevant sources.")
+                        tab_logs.success(f"Web research complete! Found {len(research_data.get('sources', []))} relevant sources.")
                         research_context = research_data['summary']
                         st.session_state.research_data = research_data
                         
                         # DEBUG: Show transparency
-                        with st.expander("🕵️ Debug: View Raw Research Context (Sent to Writer AI)"):
+                        with tab_logs.expander("🕵️ Debug: View Raw Research Context (Sent to Writer AI)"):
                             st.text_area("Research Summary Passing to Writer:", value=research_context, height=200, disabled=True)
                     else:
                         st.info("📝 No live research available. Generating article using AI's built-in knowledge.")
@@ -246,9 +246,9 @@ def run_main_app():
                             with tab_logs.expander("🔑 Keywords Being Used (Trending)", expanded=False):
                                 st.write(", ".join(keywords_for_generation))
                         else:
-                            st.info("ℹ️ No new trends were extracted (using generic keywords). Check the status dashboard above for details.")
+                            tab_logs.info("ℹ️ No new trends were extracted (using generic keywords). Check the status dashboard above for details.")
                             # Point user to logs
-                            st.caption("👉 Check 'Research Logs' tab for details on why scraping failed.")
+                            tab_logs.caption("👉 Check 'Research Logs' tab for details on why scraping failed.")
                             print(f"🔑 Using GENERIC keywords: {keywords_for_generation}")
                             with tab_logs.expander("🔑 Keywords Being Used (Generic)", expanded=False):
                                 st.write(", ".join(keywords_for_generation))

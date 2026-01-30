@@ -150,7 +150,7 @@ def get_trending_keywords(status_container=None):
                 status_placeholder.warning(f"⚠️ Error processing '{sheet_name}': {e}")
 
         if not all_raw_text:
-            st.error("🚨 No recent trending data found in ANY sheet. Falling back to generic keywords.")
+            ui_parent.error("🚨 No recent trending data found in ANY sheet. Falling back to generic keywords.")
             return []
 
         status_placeholder.info(f"🧠 Sending {total_rows_scanned} data points to AI for trend extraction...")
@@ -160,15 +160,15 @@ def get_trending_keywords(status_container=None):
         final_keywords = extract_keywords_from_text(truncated_text)
         
         if final_keywords:
-            st.success(f"✨ Success! Extracted {len(final_keywords)} trends from {successful_sheets} sheets.")
+            ui_parent.success(f"✨ Success! Extracted {len(final_keywords)} trends from {successful_sheets} sheets.")
             write_keyword_cache(final_keywords)
         else:
-            st.error("❌ AI failed to extract keywords from the collected data.")
+            ui_parent.error("❌ AI failed to extract keywords from the collected data.")
         
         return sorted(final_keywords)
 
     except Exception as e:
-        st.error(f"🚨 A critical error occurred during trend fetching: {e}")
+        ui_parent.error(f"🚨 A critical error occurred during trend fetching: {e}")
         return []
 
 # End of trend_fetcher.py
