@@ -61,8 +61,8 @@ from st_copy_to_clipboard import st_copy_to_clipboard
 GENERIC_KEYWORDS = ["therapy", "anxiety", "depression", "self-care", "wellness", "mental health"]
 INTERNAL_SITE_URL = "vibe.shadee.care"
 
-# --- Cookie Manager (Cached) ---
-@st.cache_resource
+# --- Cookie Manager ---
+# Note: CookieManager contains a widget, so it cannot be cached in newer Streamlit versions.
 def get_manager():
     return stx.CookieManager()
 
