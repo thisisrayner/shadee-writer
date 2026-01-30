@@ -137,9 +137,11 @@ def generate_internal_search_queries(topic: str) -> list[str]:
         return [topic]
 
 # --- Refactored Smart Research Function ---
-def perform_web_research(topic: str, audience: str = "Young Adults (19-30+)") -> dict | None:
+def perform_web_research(topic: str, audience: str = "Young Adults (19-30+)", status_container=None) -> dict | None:
     """
     Perform a multi-pass research loop until 7 high-quality sources are found.
+    Args:
+        status_container: Optional Streamlit container to render logs into.
     """
     print("--- Starting Smart Research Pipeline ---")
     
@@ -154,13 +156,36 @@ def perform_web_research(topic: str, audience: str = "Young Adults (19-30+)") ->
     seen_urls = set()
     high_quality_sources = [] # List of {'url': str, 'content': str, 'score': int}
     tried_queries = []
+    log_history = [] # For persistence
+
+    # Determine where to render
+    if status_container:
+        ui_parent = status_container
+    else:
+        ui_parent = st.container()
     
-    # UI Elements (Ensure we clear previous attempt visuals)
     # UI Elements (Encapsulated in Expander for cleaner UI)
-    with st.expander("🔎 Smart Research Dashboard (Scraping & Scoring)", expanded=True):
+    with ui_parent:
+        st.markdown("### 🔎 Smart Research Dashboard")
         progress_bar = st.progress(0)
         status_text = st.empty()
         log_container = st.container()
+
+    def log_message(msg, level="info", icon=""):
+        """Helper to log to both UI and history"""
+        full_msg = f"{icon} {msg}" if icon else msg
+        log_history.append({"message": full_msg, "level": level})
+        
+        if level == "info":
+            log_container.info(full_msg)
+        elif level == "success":
+            log_container.success(full_msg)
+        elif level == "warning":
+            log_container.warning(full_msg)
+        elif level == "error":
+            log_container.error(full_msg)
+        else:
+            log_container.markdown(full_msg)
 
     attempts = 0
     max_attempts = 5
@@ -223,9 +248,10 @@ def perform_web_research(topic: str, audience: str = "Young Adults (19-30+)") ->
             current_query = refine_search_query(topic, tried_queries, len(high_quality_sources))
 
     status_text.success(f"🏁 Research wrap-up: Found {len(high_quality_sources)} high-quality sources.")
+    log_history.append({"message": f"🏁 Research wrap-up: Found {len(high_quality_sources)} high-quality sources.", "level": "success"})
     
     if not high_quality_sources:
-        return {"summary": "Live web research was unavailable. Article will be generated using AI's built-in knowledge.", "sources": list(seen_urls)}
+        return {"summary": "Live web research was unavailable. Article will be generated using AI's built-in knowledge.", "sources": list(seen_urls), "logs": log_history}
 
     # Final Summarization
     status_text.info("📝 Synthesizing research into a summary...")
@@ -248,11 +274,12 @@ def perform_web_research(topic: str, audience: str = "Young Adults (19-30+)") ->
         
         return {
             "summary": summary,
-            "sources": [s['url'] for s in high_quality_sources]
+            "sources": [s['url'] for s in high_quality_sources],
+            "logs": log_history
         }
     except Exception as e:
         st.error(f"Summarization error: {e}")
-        return {"summary": "Error during summarization.", "sources": [s['url'] for s in high_quality_sources]}
+        return {"summary": "Error during summarization.", "sources": [s['url'] for s in high_quality_sources], "logs": log_history}
 
 # End of gemini_helper.py
 
