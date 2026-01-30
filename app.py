@@ -404,9 +404,11 @@ def login_screen():
     """Renders the login screen and handles authentication."""
     st.title("Shadee.Care Writer's Assistant Login")
     
+    # Instantiate manager ONCE per render to avoid 'Duplicate Element' error
+    cookie_manager = get_manager()
+    
     # Check for existing cookie
     try:
-        cookie_manager = get_manager()
         auth_cookie = cookie_manager.get("shadee_auth_token")
         
         if auth_cookie and not st.session_state.authenticated:
@@ -443,7 +445,7 @@ def login_screen():
                     
                     if remember_me:
                         expires = datetime.datetime.now() + datetime.timedelta(days=1)
-                        cookie_manager = get_manager()
+                        # REUSE the existing manager instance
                         cookie_manager.set("shadee_auth_token", username_input, expires_at=expires)
                     
                     st.rerun()
