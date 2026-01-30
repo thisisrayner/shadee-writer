@@ -195,7 +195,7 @@ def run_main_app():
                 if level == "success": st.success(msg)
                 elif level == "warning": st.warning(msg)
                 elif level == "error": st.error(msg)
-                elif level == "markdown": st.markdown(msg)
+                elif level == "markdown": st.markdown(msg, unsafe_allow_html=True)
                 else: st.info(msg)
         else:
             st.info("ℹ️ Logs will appear here during and after the research process.")
@@ -263,12 +263,21 @@ def run_main_app():
                         research_context = research_data['summary']
                         st.session_state.research_data = research_data
                         
-                        # DEBUG: Show transparency
-                        with tab_logs.expander("🕵️ Debug: View Raw Research Context (Sent to Writer AI)"):
-                            st.text_area("Research Summary Passing to Writer:", value=research_context, height=200, disabled=True)
+                        # DEBUG: Persist the context to logs so it survives rerun
+                        context_msg = f"""
+<details>
+<summary><strong>🕵️ Debug: View Raw Research Context (Sent to Writer AI)</strong></summary>
+
+```text
+{research_context}
+```
+</details>
+"""
+                        st.session_state.research_logs.append({"message": context_msg, "level": "markdown"})
                     else:
                         st.info("📝 No live research available. Generating article using AI's built-in knowledge.")
                         st.session_state.research_data = {"summary": research_context, "sources": []}
+                        st.session_state.research_logs.append({"message": "ℹ️ **No live research found.** Using AI knowledge.", "level": "markdown"})
                     
                     keywords_for_generation = GENERIC_KEYWORDS
                     if use_trending_keywords:
