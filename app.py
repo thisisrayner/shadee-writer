@@ -55,7 +55,6 @@ except Exception as e:
     google_search = lambda query, num_results=5, site_filter=None, ui_container=None: []
 
 from streamlit_extras.add_vertical_space import add_vertical_space
-from st_copy_to_clipboard import st_copy_to_clipboard
 
 # --- Constants ---
 GENERIC_KEYWORDS = ["therapy", "anxiety", "depression", "self-care", "wellness", "mental health"]
@@ -183,11 +182,12 @@ def run_main_app():
         topic = st.text_input(
             "Enter the article topic:",
             placeholder="e.g., 'Overcoming the fear of failure' or a celebrity profile like 'Zendaya's journey with anxiety'",
-            key="topic_input"
+            key="topic_input",
+            disabled=st.session_state.processing
         )
         structure_keys_list = list(STRUCTURE_DETAILS.keys())
         structure_options = structure_keys_list + ["Let AI decide"]
-        structure_choice = st.selectbox("Choose an article structure:", options=structure_options, index=len(structure_keys_list))
+        structure_choice = st.selectbox("Choose an article structure:", options=structure_options, index=len(structure_keys_list), disabled=st.session_state.processing)
         
         # Audience targeting selector
         st.markdown("**Target Audience:**")
@@ -196,10 +196,11 @@ def run_main_app():
             options=["Youth (13-18)", "Young Adults (19-30+)"],
             index=1,  # Default to Young Adults
             horizontal=True,
-            help="Youth: Gen-Z focused with trendy lingos | Young Adults: Professional yet fresh Millennial tone"
+            help="Youth: Gen-Z focused with trendy lingos | Young Adults: Professional yet fresh Millennial tone",
+            disabled=st.session_state.processing
         )
         
-        use_trending_keywords = st.checkbox("Include trending keywords for SEO", value=True)
+        use_trending_keywords = st.checkbox("Include trending keywords for SEO", value=True, disabled=st.session_state.processing)
         
         add_vertical_space(2)
 
@@ -213,7 +214,7 @@ def run_main_app():
                     start_processing()
         
         with col2:
-            if st.button("↺ Reset", help="Clear form and start a new article", use_container_width=True):
+            if st.button("↺ Reset", help="Clear form and start a new article", use_container_width=True, disabled=st.session_state.processing):
                 # Clear all generated content and session state
                 if 'generated_package' in st.session_state: del st.session_state['generated_package']
                 if 'parsed_package' in st.session_state: del st.session_state['parsed_package']
@@ -365,7 +366,10 @@ def run_main_app():
                             st.write("No relevant internal articles were found for this topic.")
     
                 add_vertical_space(1)
-                st_copy_to_clipboard(full_package, "Click here to copy the full output")
+                
+                # Simple Copy Block (Native Streamlit with Copy Button)
+                st.markdown("### 📋 Copy Full Article")
+                st.code(full_package, language="markdown")
                 
                 # Persistent Debug Information Section (Moved to Logs Tab)
                 tab_logs.divider()
