@@ -9,3 +9,4 @@ requests
 google-generativeai
 google-api-python-client
 trafilatura
+extra-streamlit-components

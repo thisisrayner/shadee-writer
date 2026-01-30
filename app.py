@@ -1,22 +1,21 @@
-# Version 3.8.0:
+# Version 3.8.1:
+# - Added Persistent Sessions: Users remain logged in for 24 hours via cookies.
+# - Cleaned up imports and file structure.
 # - UI Overhaul: Moved Main Interface and Logs into separate tabs ("Article Writer", "Research Logs").
-# - Implemented persistent research logging in the separate tab.
-# Previous versions:
-# - Version 3.7.3: UI Polish: Renamed "Generate" button, updated theme
-# - Version 3.7.2: Added comprehensive error handling for all utility imports
-# - Version 3.7.1: Fixed KeyError when WordPress credentials not configured
 
 """
 Module: app.py
 Purpose: The main Streamlit application file for the Shadee.Care Writer's Assistant.
 - Renders a multi-step workflow for creating "Writer's Packs".
-- Supports audience targeting, social media post generation, and trending keyword integration.
-- Features a modern, purple-themed UI and persists research/logs across generations.
+- Supports persistent login sessions.
+- Features a modern UI with separate tabs for creation and research logs.
 """
 
 # --- Imports ---
 import streamlit as st
 import re
+import extra_streamlit_components as stx
+import datetime
 
 # Core imports (always required)
 from utils.gpt_helper import generate_article_package, STRUCTURE_DETAILS
@@ -33,7 +32,7 @@ try:
     from utils.trend_fetcher import get_trending_keywords
 except Exception as e:
     print(f"Trending keywords disabled: {e}")
-    get_trending_keywords = lambda: None
+    get_trending_keywords = lambda status_container=None: None
 
 # WordPress is optional - only needed for admin users
 try:
@@ -47,13 +46,13 @@ try:
 except Exception as e:
     print(f"Gemini research disabled: {e}")
     perform_web_research = lambda topic, audience=None, status_container=None: None
-    generate_internal_search_queries = lambda topic: []
+    generate_internal_search_queries = lambda topic, status_container=None: []
 
 try:
     from utils.search_engine import google_search
 except Exception as e:
     print(f"Google search disabled: {e}")
-    google_search = lambda query, num_results=5, site_filter=None: []
+    google_search = lambda query, num_results=5, site_filter=None, ui_container=None: []
 
 from streamlit_extras.add_vertical_space import add_vertical_space
 from st_copy_to_clipboard import st_copy_to_clipboard
@@ -61,6 +60,11 @@ from st_copy_to_clipboard import st_copy_to_clipboard
 # --- Constants ---
 GENERIC_KEYWORDS = ["therapy", "anxiety", "depression", "self-care", "wellness", "mental health"]
 INTERNAL_SITE_URL = "vibe.shadee.care"
+
+# --- Cookie Manager (Cached) ---
+@st.cache_resource(experimental_allow_widgets=True)
+def get_manager():
+    return stx.CookieManager()
 
 # --- Helper Functions ---
 def parse_gpt_output(text):
@@ -92,29 +96,36 @@ def parse_gpt_output(text):
 
 def start_processing():
     """Callback to start the generation process."""
-    # Validation happens in the button callback now, so just set the flag
     st.session_state.processing = True
     st.session_state.confirm_wordpress_send = False
-    if 'generated_package' in st.session_state: del st.session_state['generated_package']
-    if 'parsed_package' in st.session_state: del st.session_state['parsed_package']
-    if 'research_data' in st.session_state: del st.session_state['research_data']
-    if 'internal_links' in st.session_state: del st.session_state['internal_links']
+    # Clear previous results
+    keys_to_clear = ['generated_package', 'parsed_package', 'research_data', 'internal_links', 'search_queries', 'keywords_used']
+    for k in keys_to_clear:
+        if k in st.session_state: del st.session_state[k]
     
-    # Auto-close sidebar when generation starts
+    # Auto-close sidebar
     st.session_state.sidebar_state = "collapsed"
 
 # --- Main Application Logic ---
 def run_main_app():
     """Renders the main writer's assistant application after successful login."""
     
-    st.markdown("""<style>...</style>""", unsafe_allow_html=True) # CSS for footer
+    st.markdown("""<style>.sidebar-footer {position: fixed; bottom: 0; width: 100%;}</style>""", unsafe_allow_html=True) 
     with st.sidebar:
         st.success(f"Logged in as **{st.session_state.username}** (Role: {st.session_state.role})")
         if st.button("Logout"):
+            # Delete cookie on logout
+            try:
+                cookie_manager = get_manager()
+                cookie_manager.delete("shadee_auth_token")
+            except Exception as e:
+                print(f"Cookie delete error: {e}")
+            
             st.session_state.authenticated = False
             st.session_state.username = ""
             st.session_state.role = ""
             st.rerun()
+            
         st.markdown(
             """
             <div class="sidebar-footer">
@@ -393,9 +404,28 @@ def login_screen():
     """Renders the login screen and handles authentication."""
     st.title("Shadee.Care Writer's Assistant Login")
     
+    # Check for existing cookie
+    try:
+        cookie_manager = get_manager()
+        auth_cookie = cookie_manager.get("shadee_auth_token")
+        
+        if auth_cookie and not st.session_state.authenticated:
+            # Validate cookie against users (simple check if username exists)
+            users = st.secrets["authentication"]["users"]
+            for user in users:
+                if user.get("username") == auth_cookie:
+                    st.session_state.authenticated = True
+                    st.session_state.username = user.get("username")
+                    st.session_state.role = user.get("role", "writer")
+                    st.rerun()
+                    return
+    except Exception as e:
+        print(f"Cookie check error: {e}")
+
     with st.form("login_form"):
         username_input = st.text_input("Username").lower()
         password_input = st.text_input("Password", type="password")
+        remember_me = st.checkbox("Remember me for 24 hours", value=True)
         submitted = st.form_submit_button("Login")
 
         if submitted:
@@ -410,6 +440,12 @@ def login_screen():
                     st.session_state.authenticated = True
                     st.session_state.username = user_found.get("username")
                     st.session_state.role = user_found.get("role", "writer")
+                    
+                    if remember_me:
+                        expires = datetime.datetime.now() + datetime.timedelta(days=1)
+                        cookie_manager = get_manager()
+                        cookie_manager.set("shadee_auth_token", username_input, expires_at=expires)
+                    
                     st.rerun()
                 else:
                     st.error("Invalid username or password.")
@@ -448,5 +484,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# End of app.py
