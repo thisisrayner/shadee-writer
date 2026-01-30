@@ -110,13 +110,16 @@ def start_processing():
 def run_main_app():
     """Renders the main writer's assistant application after successful login."""
     
-    st.markdown("""<style>.sidebar-footer {position: fixed; bottom: 0; width: 100%;}</style>""", unsafe_allow_html=True) 
+    st.markdown("""<style>.sidebar-footer {position: fixed; bottom: 0; width: 100%;}</style>""", unsafe_allow_html=True)
+    
+    # Instantiate manager ONCE per render
+    cookie_manager = get_manager()
+
     with st.sidebar:
         st.success(f"Logged in as **{st.session_state.username}** (Role: {st.session_state.role})")
-        if st.button("Logout"):
+        if st.button("Logout", key="sidebar_logout"):
             # Delete cookie on logout
             try:
-                cookie_manager = get_manager()
                 cookie_manager.delete("shadee_auth_token")
             except Exception as e:
                 print(f"Cookie delete error: {e}")
@@ -138,7 +141,22 @@ def run_main_app():
             unsafe_allow_html=True
         )
 
-    st.title("🪴 Shadee.Care Writer's Assistant")
+    # Header with Logout
+    col_head, col_out = st.columns([8, 1])
+    with col_head:
+        st.title("🪴 Shadee.Care Writer's Assistant")
+    with col_out:
+        st.write("") # Spacer for alignment
+        if st.button("Logout", key="top_logout"):
+             try:
+                cookie_manager.delete("shadee_auth_token")
+             except Exception as e:
+                print(f"Cookie delete error: {e}")
+             st.session_state.authenticated = False
+             st.session_state.username = ""
+             st.session_state.role = ""
+             st.rerun()
+
     st.markdown("This tool helps you brainstorm and create draft articles for the Shadee.Care blog.")
     
     # --- UI TABS ---
@@ -247,7 +265,7 @@ def run_main_app():
                     
                     keywords_for_generation = GENERIC_KEYWORDS
                     if use_trending_keywords:
-                        with st.spinner("📈 Fetching and analyzing latest trends from Google Sheets..."):
+                        with st.spinner("📈 Fetching and analyzing latest keyword trends..."):
                             fetched_keywords = get_trending_keywords(status_container=tab_logs)
                         
                         if fetched_keywords:
@@ -283,7 +301,7 @@ def run_main_app():
                         st.session_state.topic = topic
                         st.session_state.structure_choice = structure_choice
     
-                        with st.spinner("💾 Saving to Google Sheets..."):
+                        with st.spinner("💾 Saving..."):
                             if connect_to_sheet is None or write_to_sheet is None:
                                 st.warning("Google Sheets integration not configured. Skipping save.")
                                 st.info("Generated content is displayed below but not saved to sheets.")
@@ -311,11 +329,14 @@ def run_main_app():
             parsed_package = st.session_state.parsed_package
             with st.container(border=True):
                 for header, content in parsed_package.items():
+                    # SKIP Writing Reminders as per user request
+                    if "Writing Reminders" in header:
+                        continue
+                        
                     icon = "📄"
                     if "Title" in header: icon = "🏷️"
                     elif "Context" in header: icon = "🔍"
                     elif "keywords" in header: icon = "🔑"
-                    elif "Reminders" in header: icon = "📝"
                     elif "1st Draft" in header: icon = "✍️"
                     elif "Social" in header: icon = "📱"
                     elif "checklist" in header: icon = "✅"

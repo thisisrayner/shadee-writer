@@ -112,11 +112,12 @@ Create engaging content for these platforms based on the article:
 - **TikTok:** Hook (0-3s) + Script outline + Call to Action.
 
 🛠️ Final Draft Checklist for Writers (Output relevant ones for user):
+IMPORTANT: Output these as an empty checklist for the human writer. DO NOT answer them.
 - Does it feel like a conversation with a friend?
 - Is the emotional thread clear from start to finish?
 - Is there a strong takeaway or reflection at the end?
 - Did you naturally incorporate relevant keywords without feeling forced?
-- Would this resonate with a 13-30 year old?
+- Would this resonate with {audience_label}?
 - If sensitive, did you include a support paragraph with relevant contacts?
 - Did you choose the most suitable structure based on the topic’s nature?
 
@@ -151,16 +152,19 @@ def generate_article_package(topic, structure_choice, keywords=None, research_co
     system_role_content = ""
     
     if "Youth" in audience:
-        tone_instructions = """- Tone: Informal, relatable, empathetic, and 'cool' but not cringey. 
+        tone_instructions = """- Tone: Write as if you are a fellow Gen-Zer. Informal, relatable, and empathetic.
 - Language: Use simple language, short sentences, and Gen-z friendly formatting (emojis, bullet points).
+- Slang usage: Use slang naturally but **don't go overboard** (avoid sounding forced or "cringey").
 - Avoid: Corporate jargon, overly academic words, or sounding like a 'teacher'.
 - Focus: School stress, peer pressure, identity, and social media struggles."""
         system_role_content = "You are a specialized SEO writing assistant for Shadee.Care, creating content for Gen-Z youth (13-18)."
+        audience_label = "a Gen-Z Youth (13-18)"
     else:
         tone_instructions = """- Tone: Professional yet fresh, empathetic, practical, and mature.
 - Language: Clear, concise, and engaging. It's okay to use more complex concepts but explain them well.
 - Focus: Career anxiety, adulting struggles, relationships, and balancing life."""
         system_role_content = "You are a specialized SEO writing assistant for Shadee.Care, creating content for young adults (19-30+)."
+        audience_label = "a Young Adult (19-30+)"
 
     keyword_section = ""
     if keywords:
@@ -191,7 +195,8 @@ You must use the following structure for the first draft.
         keyword_section=keyword_section,
         structure_instructions=structure_instructions,
         research_context=research_context,
-        tone_instructions=tone_instructions
+        tone_instructions=tone_instructions,
+        audience_label=audience_label
     )}"
     
     # Call Gemini model
