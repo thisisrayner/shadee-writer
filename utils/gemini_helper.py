@@ -108,7 +108,7 @@ def refine_search_query(topic: str, tried_queries: list[str], current_sources_co
         return f"{topic} deep dive research"
 
 # --- NEW: Function for Generating Internal Search Queries ---
-def generate_internal_search_queries(topic: str) -> list[str]:
+def generate_internal_search_queries(topic: str, status_container=None) -> list[str]:
     """
     Uses a fast LLM to generate broader, thematic search queries based on a specific topic.
     """
@@ -133,7 +133,10 @@ def generate_internal_search_queries(topic: str) -> list[str]:
         queries_string = response.text.strip()
         return [q.strip() for q in queries_string.split(',') if q.strip()]
     except Exception as e:
-        st.warning(f"Could not generate internal search queries due to an error: {e}")
+        if status_container:
+            status_container.warning(f"Could not generate internal search queries due to an error: {e}")
+        else:
+            print(f"Internal link generation failed: {e}")
         return [topic]
 
 # --- Refactored Smart Research Function ---
@@ -205,7 +208,7 @@ def perform_web_research(topic: str, audience: str = "Young Adults (19-30+)", st
         status_text.info(f"🚀 Attempt {attempts}/{max_attempts}: Searching for **'{current_query}'**...")
         
         # Search
-        found_urls = google_search(current_query, num_results=10)
+        found_urls = google_search(current_query, num_results=10, ui_container=log_container)
         if not found_urls:
             log_container.warning(f"⚠️ No new results for: {current_query}")
         else:

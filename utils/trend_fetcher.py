@@ -61,14 +61,18 @@ def extract_keywords_from_text(text_block):
         st.error(f"Error during AI keyword extraction: {e}")
         return []
 
-def get_trending_keywords():
+def get_trending_keywords(status_container=None):
     """Main function to get keywords, utilizing a daily cache to avoid repeated API calls."""
     cached_keywords_str = read_keyword_cache()
     if cached_keywords_str:
         return [kw.strip() for kw in cached_keywords_str.split(',') if kw.strip()]
 
-    # Status indicator in the main app area
-    status_placeholder = st.expander("📊 Trend Fetcher Diagnostics", expanded=True)
+    # Status indicator rendering context
+    ui_parent = status_container if status_container else st
+    
+    # Create the expander within the correct parent
+    with ui_parent:
+        status_placeholder = st.expander("📊 Trend Fetcher Diagnostics", expanded=True)
     try:
         status_placeholder.info("🔄 Connecting to 'Shadee Social Master' spreadsheet...")
         scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]

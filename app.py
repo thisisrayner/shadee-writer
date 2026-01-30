@@ -237,24 +237,24 @@ def run_main_app():
                     keywords_for_generation = GENERIC_KEYWORDS
                     if use_trending_keywords:
                         with st.spinner("📈 Fetching and analyzing latest trends from Google Sheets..."):
-                            fetched_keywords = get_trending_keywords()
+                            fetched_keywords = get_trending_keywords(status_container=tab_logs)
                         
                         if fetched_keywords:
                             keywords_for_generation = fetched_keywords
                             st.success(f"Incorporated {len(fetched_keywords)} trending keywords.")
                             print(f"🔑 Using TRENDING keywords: {keywords_for_generation}")
-                            with st.expander("🔑 Keywords Being Used (Trending)", expanded=False):
+                            with tab_logs.expander("🔑 Keywords Being Used (Trending)", expanded=False):
                                 st.write(", ".join(keywords_for_generation))
                         else:
                             st.info("ℹ️ No new trends were extracted (using generic keywords). Check the status dashboard above for details.")
                             # Point user to logs
                             st.caption("👉 Check 'Research Logs' tab for details on why scraping failed.")
                             print(f"🔑 Using GENERIC keywords: {keywords_for_generation}")
-                            with st.expander("🔑 Keywords Being Used (Generic)", expanded=False):
+                            with tab_logs.expander("🔑 Keywords Being Used (Generic)", expanded=False):
                                 st.write(", ".join(keywords_for_generation))
                     else:
                         print(f"🔑 Using GENERIC keywords (trending disabled): {keywords_for_generation}")
-                        with st.expander("🔑 Keywords Being Used (Generic - Trending Disabled)", expanded=False):
+                        with tab_logs.expander("🔑 Keywords Being Used (Generic - Trending Disabled)", expanded=False):
                             st.write(", ".join(keywords_for_generation))
                     
                     st.info("🧠 Prompt sent! Writer AI is thinking...")
@@ -319,10 +319,10 @@ def run_main_app():
                 
                 with st.expander("🔗 Suggested Internal Links from Vibe.Shadee.Care"):
                     with st.spinner("Finding related articles..."):
-                        smart_queries = generate_internal_search_queries(st.session_state.topic)
+                        smart_queries = generate_internal_search_queries(st.session_state.topic, status_container=tab_logs)
                         internal_links = set()
                         for query in smart_queries:
-                            results = google_search(query, num_results=2, site_filter=INTERNAL_SITE_URL)
+                            results = google_search(query, num_results=2, site_filter=INTERNAL_SITE_URL, ui_container=tab_logs)
                             for url in results:
                                 internal_links.add(url)
                         

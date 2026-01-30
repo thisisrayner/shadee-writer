@@ -12,15 +12,15 @@ import streamlit as st
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-def google_search(query: str, num_results: int = 5, site_filter: str = None) -> list[str]:
+def google_search(query: str, num_results: int = 5, site_filter: str = None, ui_container=None) -> list[str]:
     """
     Performs a Google search and returns a list of real URLs.
 
     Args:
         query (str): The search query.
         num_results (int): The number of results to return. Max 10.
-        site_filter (str, optional): A specific domain to restrict the search to
-                                     (e.g., 'vibe.shadee.care'). Defaults to None.
+        site_filter (str, optional): A specific domain to restrict the search to.
+        ui_container (streamlit.container, optional): Container to render UI elements into.
 
     Returns:
         list[str]: A list of result URLs, or an empty list on failure.
@@ -39,6 +39,9 @@ def google_search(query: str, num_results: int = 5, site_filter: str = None) -> 
         
         res = service.cse().list(q=query, cx=cse_id, num=num_results).execute()
 
+        # Determine rendering context
+        target_ui = ui_container if ui_container else st
+
         if 'items' in res:
             results = [item['link'] for item in res['items']]
             # Console logging (for server logs)
@@ -54,8 +57,8 @@ def google_search(query: str, num_results: int = 5, site_filter: str = None) -> 
                 'count': len(results)
             })
             
-            # UI logging (for users to see in app during processing)
-            with st.expander(f"🔍 Search Query: '{query}' - Found {len(results)} results", expanded=False):
+            # UI logging (directed to specific container if provided)
+            with target_ui.expander(f"🔍 Search Query: '{query}' - Found {len(results)} results", expanded=False):
                 for idx, url in enumerate(results, 1):
                     st.text(f"{idx}. {url}")
             return results
@@ -71,7 +74,7 @@ def google_search(query: str, num_results: int = 5, site_filter: str = None) -> 
             'count': 0
         })
         
-        st.info(f"🔍 Search Query: '{query}' - No results found")
+        target_ui.info(f"🔍 Search Query: '{query}' - No results found")
         return []
             
     except HttpError as e:
