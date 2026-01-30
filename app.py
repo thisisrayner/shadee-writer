@@ -62,7 +62,7 @@ GENERIC_KEYWORDS = ["therapy", "anxiety", "depression", "self-care", "wellness",
 INTERNAL_SITE_URL = "vibe.shadee.care"
 
 # --- Cookie Manager (Cached) ---
-@st.cache_resource(experimental_allow_widgets=True)
+@st.cache_resource
 def get_manager():
     return stx.CookieManager()
 
