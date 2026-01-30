@@ -454,6 +454,20 @@ def login_screen():
     except Exception as e:
         print(f"Cookie check error: {e}")
 
+    # --- LOADER LOGIC ---
+    # If this is the "first" pass (or specific check pass) and we haven't authenticated yet,
+    # show a loader instead of the form immediately.
+    # We use a session state counter to allow one "tick" for the cookie manager to sync.
+    if 'login_check_count' not in st.session_state:
+        st.session_state.login_check_count = 0
+        
+    if st.session_state.login_check_count < 1:
+        st.session_state.login_check_count += 1
+        with st.spinner(""):
+            time.sleep(0.5) # Short delay to let the browser cookie header sync
+        st.rerun()
+        return
+
     with st.form("login_form"):
         username_input = st.text_input("Username").lower()
         password_input = st.text_input("Password", type="password")
