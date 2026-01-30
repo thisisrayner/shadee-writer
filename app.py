@@ -286,7 +286,7 @@ def run_main_app():
                         with tab_logs.expander("🔑 Keywords Being Used (Generic - Trending Disabled)", expanded=False):
                             st.write(", ".join(keywords_for_generation))
                     
-                    st.info("🧠 Prompt sent! Writer AI is thinking...")
+                    st.info("🧠 Writer AI is thinking...")
                     with st.spinner("✍️ Crafting your writer's pack..."):
                         package_content = generate_article_package(
                             topic, structure_choice, keywords=keywords_for_generation, research_context=research_context, audience=audience)

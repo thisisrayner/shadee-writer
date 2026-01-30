@@ -58,6 +58,14 @@ STRUCTURE_DETAILS = {
 """
 }
 
+HIDDEN_STRUCTURE = """
+4. The Laureate's Canvas (Hidden Creative Mode)
+- Tone: Exceptional, Award-winning, Compelling, Genre-defying.
+- Best for: Topics that demand a unique, powerful voice to go viral or deeply resonate.
+- Structure: FREE REIGN. You are a Nobel Laureate level writer. Ignore standard templates. Structure this article in whatever way maximizes emotional impact, readership, and literary quality. Surprise the reader.
+- Requirement: Must still include the Shadee.Care Weave-In and a Call to Action, but woven in masterfully.
+"""
+
 BASE_PROMPT = """
 🎯 Purpose:
 Your role is to help Shadee.Care writers create emotionally resonant, culturally relevant articles for youth (13-30 years old). The user has provided you with the topic to focus on. You will then provide topic ideas, fun facts, research points, tone reminders, and a first draft to help writers finalize their articles.
@@ -176,10 +184,10 @@ Crucially, you are an expert SEO writer. Your main goal is to naturally weave th
 """
 
     if structure_choice == "Let AI decide":
-        all_structures = "\n\n".join(STRUCTURE_DETAILS.values())
+        all_structures = "\n\n".join(STRUCTURE_DETAILS.values()) + "\n\n" + HIDDEN_STRUCTURE
         structure_instructions = f"""
 📂 Select One Structure for the Draft:
-First, analyze the topic and decide which of these three structures would be most effective. Then, generate the full output package based on your choice.
+First, analyze the topic and decide which of these structures (including the hidden creative mode) would be most effective for maximum impact. Then, generate the full output package based on your choice.
 {all_structures}
 """
     else:
